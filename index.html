@@ -361,7 +361,7 @@ function norm(){
  S.items=S.items||[];
  S.items.forEach(x=>{
   x.ID=Number(x.ID)||++S.lastId; S.lastId=Math.max(S.lastId,x.ID);
-  if(x.Tip==="Akcija"){x.Status=x.Status==="Završeno"?"Završeno":"Otvoreno";delete x.CekaDrugog;}
+  if(x.Tip==="Akcija"){x.Status=x.Status==="Završeno"?"Završeno":"Otvoreno";delete x.CekaDrugog;if(x.Prioritet==="Operativno"||x.Prioritet==="Sitno")x.Prioritet="";}
  });
  S.items.filter(x=>x.Tip==="Projekat").forEach(x=>{if(!x.Status)x.Status="Aktivan"});
  if(!Array.isArray(S.weeklyReviews))S.weeklyReviews=[];
@@ -601,7 +601,7 @@ function vAkcije(){
  <div class="sm mute filterLabel">Oblast</div><div class="tabs filterScroll" id="areaFilters">
   ${[["all","Sve"],["Poslovno","Poslovno"],["Privatno","Privatno"]].map(([v,l])=>`<button class="btn ${actionView.area===v?"on":""}" data-area-filter="${v}">${l}</button>`).join("")}</div>
  <div class="sm mute filterLabel">Prioritet</div><div class="tabs filterScroll" id="priorityFilters">
-  ${[["all","Sve"],["Strateško","Strateško"],["Operativno","Operativno"],["Sitno","Sitno"]].map(([v,l])=>`<button class="btn ${actionView.priority===v?"on":""}" data-priority-filter="${v}">${l}</button>`).join("")}</div>
+  ${[["all","Sve"],["Strateško","Strateško"]].map(([v,l])=>`<button class="btn ${actionView.priority===v?"on":""}" data-priority-filter="${v}">${l}</button>`).join("")}</div>
  <div id="tasks" style="margin-top:14px"></div>`;
  draw();
  $("#actionSearch").oninput=e=>{actionView.search=e.target.value.trim();draw()};
@@ -762,7 +762,7 @@ function itemDialog(id){
  if($("#reopen"))$("#reopen").onclick=()=>{x.Status="Otvoreno";save();closeDlg();render()};
 }
 function editItem(x=null,type="Akcija",preset={}){
- const isNew=!x; const oldProjectName=x&&x.Tip==="Projekat"?(x.Projekat||x.Zadatak||""):""; x=x||{"Tip":type,"Status":type==="Akcija"?"Otvoreno":type==="Projekat"?"Aktivan":"","Prioritet":"Operativno",...preset};
+ const isNew=!x; const oldProjectName=x&&x.Tip==="Projekat"?(x.Projekat||x.Zadatak||""):""; x=x||{"Tip":type,"Status":type==="Akcija"?"Otvoreno":type==="Projekat"?"Aktivan":"","Prioritet":"",...preset};
  openDlg(`<h2>${isNew?"Novo":"Uredi"} · ${esc(x.Tip)}</h2>
  <label class="f"><span class="sm mute">${x.Tip==="Projekat"?"Naziv projekta":x.Tip==="Beleška"?"Beleška":"Šta treba uraditi?"}</span><textarea id="eTask" class="${x.Tip==="Beleška"?"noteInput":""}">${esc(x.Tip==="Projekat"?(x.Projekat||x.Zadatak):x.Zadatak||"")}</textarea></label>
  ${x.Tip!=="Projekat"?`<label class="f"><span class="sm mute">Oblast</span><select id="eArea"><option value="Poslovno" ${(x.Oblast||"Poslovno")==="Poslovno"?"selected":""}>Poslovno</option><option value="Privatno" ${x.Oblast==="Privatno"?"selected":""}>Privatno</option></select></label>`:""}
@@ -774,7 +774,7 @@ function editItem(x=null,type="Akcija",preset={}){
  <label class="f" id="eSourceDetailWrap" style="display:none"><span class="sm mute" id="eSourceDetailLabel">Detalj izvora</span><input id="eSourceDetail" value="${esc(x["Detalj izvora"]||"")}"></label></div>`:""}
  ${x.Tip==="Akcija"?`<details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
  
- ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label>`}
+ ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["","Strateško"].map(v=>`<option value="${v}" ${x.Prioritet===v?"selected":""}>${v||"Bez posebnog prioriteta"}</option>`).join("")}</select></label><label class="f grow" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label>`}
  
  <label class="f"><span class="sm mute">${x.Tip==="Beleška"?"Kontekst / detalji":"Detalji / dogovor"}</span><textarea id="eDetails">${esc(x["Detalji dogovora"]||x.Napomena||"")}</textarea></label>
  </div></details>`:""}
@@ -1037,7 +1037,7 @@ function resetData(){
 function bindCards(){document.querySelectorAll("[data-item]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.item)))}
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260829-7").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260829-8").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
