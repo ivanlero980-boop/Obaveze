@@ -302,6 +302,15 @@ nav button.on:after{
 }
 
 .filterScroll{display:flex;gap:7px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}.filterScroll::-webkit-scrollbar{display:none}.filterScroll .btn{flex:0 0 auto}
+
+.filterLabel{margin:12px 0 5px}
+.actionSearch{display:flex;align-items:center;gap:8px;margin:10px 0 4px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.actionSearch span{font-size:20px;color:var(--muted)}
+.actionSearch input{width:100%;border:0;outline:0;background:transparent;padding:12px 0;font:inherit;color:inherit}
+.actionGroup{margin-top:15px}
+.actionGroupHead{width:100%;border:0;background:transparent;padding:4px 2px 8px;display:flex;justify-content:space-between;align-items:center;font:inherit;font-weight:750;color:inherit;text-align:left}
+.actionGroupCount{font-size:13px;color:var(--muted);font-weight:650}
+.actionGroupList{margin-top:0}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -510,44 +519,79 @@ function actionListCard(x){
  </div>`;
 }
 function vAkcije(){
- let areaFilter="all",viewFilter="all";
+ let areaFilter="all",priorityFilter="all",statusFilter="all",searchText="",laterOpen=false;
  const all=()=>activeActions().slice().sort(attentionSort);
- const filtered=()=>{
+ const baseFiltered=()=>{
   let arr=all();
   if(areaFilter!=="all")arr=arr.filter(x=>(x.Oblast||"Poslovno")===areaFilter);
-  if(viewFilter==="Kasni")arr=arr.filter(x=>x.Rok&&daysTo(x.Rok)<0);
-  if(viewFilter==="Danas")arr=arr.filter(x=>x.Rok===today());
-  if(viewFilter==="Strateško")arr=arr.filter(x=>x.Prioritet==="Strateško");
-  if(viewFilter==="Čeka drugog")arr=arr.filter(x=>x.Status==="Čeka drugog");
+  if(priorityFilter!=="all")arr=arr.filter(x=>x.Prioritet===priorityFilter);
+  if(statusFilter==="Čeka drugog")arr=arr.filter(x=>x.Status==="Čeka drugog");
+  if(searchText){
+   const q=searchText.toLocaleLowerCase();
+   arr=arr.filter(x=>[x.Zadatak,x.Odgovoran,x.Projekat,x.Izvor,x["Detalj izvora"],x["Detalji dogovora"]].filter(Boolean).join(" ").toLocaleLowerCase().includes(q));
+  }
   return arr;
  };
- const draw=()=>{$("#tasks").innerHTML=filtered().map(actionListCard).join("")||`<div class="empty">Nema akcija u ovom prikazu.</div>`;bindCards()};
+ const groups=arr=>({
+  late:arr.filter(x=>x.Rok&&daysTo(x.Rok)<0),
+  today:arr.filter(x=>x.Rok===today()),
+  week:arr.filter(x=>x.Rok&&daysTo(x.Rok)>=1&&daysTo(x.Rok)<=7),
+  later:arr.filter(x=>x.Rok&&daysTo(x.Rok)>7)
+ });
+ const section=(title,arr,key,collapsed=false)=>{
+  if(!arr.length)return "";
+  const body=collapsed&&!laterOpen?"":`<div class="list actionGroupList">${arr.map(actionListCard).join("")}</div>`;
+  return `<section class="actionGroup">
+   <button class="actionGroupHead" ${key==="later"?'id="toggleLater"':""}>
+    <span>${title}</span><span class="actionGroupCount">${arr.length}${key==="later"?` ${laterOpen?"⌃":"⌄"}`:""}</span>
+   </button>${body}
+  </section>`;
+ };
+ const draw=()=>{
+  const arr=baseFiltered(),g=groups(arr);
+  $("#tasks").innerHTML=
+   section("Kasni",g.late,"late")+
+   section("Danas",g.today,"today")+
+   section("Dospijeva u narednih 7 dana",g.week,"week")+
+   section("Kasnije",g.later,"later",true)||
+   `<div class="empty">Nema akcija u ovom prikazu.</div>`;
+  bindCards();
+  if($("#toggleLater"))$("#toggleLater").onclick=()=>{laterOpen=!laterOpen;draw()};
+ };
  $("#view").innerHTML=head("Akcije",`${all().length} otvorenih akcija`)+`
- <div class="sm mute" style="margin:8px 0 5px">Oblast</div>
+ <label class="actionSearch"><span aria-hidden="true">⌕</span><input id="actionSearch" type="search" placeholder="Pretraži akcije"></label>
+ <div class="sm mute filterLabel">Oblast</div>
  <div class="tabs filterScroll" id="areaFilters">
   <button class="btn on" data-area-filter="all">Sve</button>
   <button class="btn" data-area-filter="Poslovno">Poslovno</button>
   <button class="btn" data-area-filter="Privatno">Privatno</button>
  </div>
- <div class="sm mute" style="margin:12px 0 5px">Prikaz</div>
- <div class="tabs filterScroll" id="viewFilters">
-  <button class="btn on" data-view-filter="all">Sve</button>
-  <button class="btn" data-view-filter="Kasni">Kasni</button>
-  <button class="btn" data-view-filter="Danas">Danas</button>
-  <button class="btn" data-view-filter="Strateško">Strateško</button>
-  <button class="btn" data-view-filter="Čeka drugog">Čeka drugog</button>
+ <div class="sm mute filterLabel">Prioritet</div>
+ <div class="tabs filterScroll" id="priorityFilters">
+  <button class="btn on" data-priority-filter="all">Sve</button>
+  <button class="btn" data-priority-filter="Strateško">Strateško</button>
+  <button class="btn" data-priority-filter="Operativno">Operativno</button>
+  <button class="btn" data-priority-filter="Sitno">Sitno</button>
  </div>
- <div class="list" id="tasks"></div>`;
+ <div class="sm mute filterLabel">Status</div>
+ <div class="tabs filterScroll" id="statusFilters">
+  <button class="btn on" data-status-filter="all">Sve</button>
+  <button class="btn" data-status-filter="Čeka drugog">Čeka drugog</button>
+ </div>
+ <div id="tasks" style="margin-top:14px"></div>`;
  draw();
+ $("#actionSearch").oninput=e=>{searchText=e.target.value.trim();draw()};
  $("#view").querySelectorAll("[data-area-filter]").forEach(b=>b.onclick=()=>{
   areaFilter=b.dataset.areaFilter;
-  $("#areaFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));
-  draw();
+  $("#areaFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));draw();
  });
- $("#view").querySelectorAll("[data-view-filter]").forEach(b=>b.onclick=()=>{
-  viewFilter=b.dataset.viewFilter;
-  $("#viewFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));
-  draw();
+ $("#view").querySelectorAll("[data-priority-filter]").forEach(b=>b.onclick=()=>{
+  priorityFilter=b.dataset.priorityFilter;
+  $("#priorityFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));draw();
+ });
+ $("#view").querySelectorAll("[data-status-filter]").forEach(b=>b.onclick=()=>{
+  statusFilter=b.dataset.statusFilter;
+  $("#statusFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));draw();
  });
 }
 function vBeleske(){
