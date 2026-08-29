@@ -559,7 +559,7 @@ function itemDialog(id){
  ${x["Detalji dogovora"]?`<p class="sm">${esc(x["Detalji dogovora"])}</p>`:""}<hr>
  <div class="sm mute">Odgovoran</div><div>${esc(x.Odgovoran||"—")}</div><div class="sm mute" style="margin-top:9px">Rok</div><div>${esc(x.Rok||"—")}</div>
  ${x.Projekat?`<div class="sm mute" style="margin-top:9px">Projekat</div><div>${esc(x.Projekat)}</div>`:""}
- ${x.Napomena?`<div class="sm mute" style="margin-top:9px">Napomena</div><div>${esc(x.Napomena)}</div>`:""}
+ ${x.Napomena&&!x["Detalji dogovora"]?`<div class="sm mute" style="margin-top:9px">Detalji / dogovor</div><div>${esc(x.Napomena)}</div>`:""}
  <div class="btnrow" style="margin-top:15px"><button class="btn pri grow" id="edit">Uredi</button>${x.Tip==="Akcija"&&x.Status!=="Završeno"?`<button class="btn" id="done">Završi</button>`:""}</div>`);
  $("#close").onclick=closeDlg;$("#edit").onclick=()=>editItem(x);
  if($("#done"))$("#done").onclick=()=>{x.Status="Završeno";save();closeDlg();render()};
@@ -571,11 +571,11 @@ function editItem(x=null,type="Akcija",preset={}){
  ${x.Tip==="Akcija"?`<div class="row"><label class="f grow"><span class="sm mute">Odgovoran</span><input id="eOwner" value="${esc(x.Odgovoran||"Ivan")}"></label><label class="f grow"><span class="sm mute">Rok</span><input type="date" id="eDue" value="${esc(x.Rok||"")}"></label></div>`:""}
  ${x.Tip==="Projekat"?`<label class="f"><span class="sm mute">Status projekta</span><select id="eProjectStatus">${["Aktivan","Na čekanju","Završen"].map(v=>`<option ${x.Status===v?"selected":""}>${v}</option>`).join("")}</select></label>`:""}
  <details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
- ${x.Tip!=="Projekat"?`<label class="f"><span class="sm mute">Projekat</span><input id="eProject" value="${esc(x.Projekat||"")}"></label>`:""}
+ 
  ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f"><span class="sm mute">Sistem</span><select id="eSystem">${["","Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>`}
  <label class="f"><span class="sm mute">Izvor</span><input id="eSource" list="sourceOptions" value="${esc(x.Izvor||"")}" placeholder="Opciono"><datalist id="sourceOptions"><option value="Kolegijum"><option value="Regulator"><option value="Graz/uprava"></datalist></label>
- <label class="f"><span class="sm mute">${x.Tip==="Beleška"?"Kontekst / detalji":"Detalji / dogovor"}</span><textarea id="eDetails">${esc(x["Detalji dogovora"]||"")}</textarea></label>
- ${x.Tip!=="Beleška"?`<label class="f"><span class="sm mute">Napomena</span><textarea id="eNote">${esc(x.Napomena||"")}</textarea></label>`:""}</div></details>
+ <label class="f"><span class="sm mute">${x.Tip==="Beleška"?"Kontekst / detalji":"Detalji / dogovor"}</span><textarea id="eDetails">${esc(x["Detalji dogovora"]||x.Napomena||"")}</textarea></label>
+ </div></details>
  <div class="btnrow" style="margin-top:14px"><button class="btn pri grow" id="eSave">Sačuvaj</button><button class="btn" id="eCancel">Otkaži</button></div>`);
  $("#eCancel").onclick=closeDlg;$("#eSave").onclick=()=>{
   const task=$("#eTask").value.trim();if(!task)return;
@@ -583,8 +583,8 @@ function editItem(x=null,type="Akcija",preset={}){
   if(x.Tip==="Projekat"){x.Projekat=task;x.Zadatak=task}else x.Zadatak=task;
   if(x.Tip==="Akcija"){x.Odgovoran=$("#eOwner").value.trim();x.Rok=$("#eDue").value;x.Status=x.Status||"Otvoreno"}
   if(x.Tip==="Projekat"){x.Status=$("#eProjectStatus")?.value||x.Status||"Aktivan"}
-  x.Projekat=$("#eProject")?.value.trim()||x.Projekat||"";x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=$("#eSystem")?.value||x.Sistem||"";
-  x.Izvor=$("#eSource")?.value.trim()||"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena=$("#eNote")?.value||x.Napomena||"";
+  x.Projekat=x.Projekat||"";x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=$("#eSystem")?.value||x.Sistem||"";
+  x.Izvor=$("#eSource")?.value.trim()||"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena="";
   save();norm();closeDlg();
   if(x.Tip==="Projekat")route="projekti";
   else if(x.Tip==="Beleška")route="beleske";
