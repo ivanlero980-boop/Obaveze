@@ -337,15 +337,6 @@ nav button.on:after{
 .meetingGroup{margin-top:12px}
 @media(max-width:380px){.meetingKpis{grid-template-columns:repeat(2,1fr)}}
 
-.reviewTitle{align-items:flex-end;margin-top:20px}
-.reviewDashboard{padding:0}
-.reviewDashGroup+.reviewDashGroup{border-top:1px solid var(--line)}
-.reviewDashHead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 6px;font-size:12px;color:var(--mute)}
-.reviewDashRow{display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:58px}
-.reviewDashRow+.reviewDashRow{border-top:1px solid var(--line)}
-.reviewDue{font-size:11px;font-weight:700;white-space:nowrap;color:var(--mute)}
-.reviewDue.soon{color:var(--amber)}
-.reviewDue.late{color:var(--red)}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -489,14 +480,14 @@ function vPregled(){
  const upcoming=actions.filter(x=>x.Rok&&daysTo(x.Rok)>0).sort((a,b)=>a.Rok.localeCompare(b.Rok)).slice(0,5);
  const todayRows=dueToday.slice().sort(attentionSort);
  const next7=actions.filter(x=>x.Rok&&daysTo(x.Rok)>=1&&daysTo(x.Rok)<=7).sort(attentionSort);
- const next30=actions.filter(x=>x.Rok&&daysTo(x.Rok)>=8&&daysTo(x.Rok)<=30).sort(attentionSort);
- const reviewRow=x=>`<div class="reviewDashRow" data-item="${x.ID}">
-   <div class="grow"><div class="rowTitle">${esc(x.Zadatak)}</div>
-   <div class="rowMeta">${esc(x.Odgovoran||"")}${x.Projekat?` · Projekat: ${esc(x.Projekat)}`:" · Solo"} · ${esc(fmtDate(x.Rok))}</div></div>
-   <span class="reviewDue ${daysTo(x.Rok)<0?"late":daysTo(x.Rok)<=7?"soon":""}">${daysTo(x.Rok)<0?`Kasni ${Math.abs(daysTo(x.Rok))} d`:daysTo(x.Rok)===0?"Danas":daysTo(x.Rok)===1?"Sjutra":`Za ${daysTo(x.Rok)} d`}</span>
-  </div>`;
- const reviewGroup=(title,arr)=>arr.length?`<div class="reviewDashGroup"><div class="reviewDashHead"><b>${title}</b><span>${arr.length}</span></div>${arr.map(reviewRow).join("")}</div>`:"";
- const notesHTML=ns.length?ns.slice().sort((a,b)=>(b.ID||0)-(a.ID||0)).map(n=>`<div class="reviewDashRow" data-note="${n.ID}"><div class="grow"><div class="rowTitle">${esc(n.Zadatak)}</div><div class="rowMeta">${esc(n.Oblast||"Poslovno")}</div></div><span>›</span></div>`).join(""):`<div class="dashboardEmpty">Nema aktivnih beleški.</div>`;
+ const next7HTML=next7.length?next7.map(x=>{
+   const [y,m,d]=x.Rok.split("-");
+   return `<div class="upcomingRow" data-item="${x.ID}">
+    <div class="dateBox"><div class="dateDay">${d}</div><div class="dateMonth">${monthShort(x.Rok)}</div></div>
+    <div><div class="rowTitle">${esc(x.Zadatak)}</div><div class="rowMeta">${esc(x.Projekat||x.Izvor||"Akcija")} · Rok: ${esc(fmtDate(x.Rok))}</div></div>
+    <button class="pendingCircle" data-done="${x.ID}" aria-label="Označi kao završeno"></button>
+   </div>`;
+ }).join(""):`<div class="dashboardEmpty">Nema akcija koje dospijevaju u narednih 7 dana.</div>`;
 
  const tile=(icon,title,value,foot,extra="")=>`<div class="summaryTile ${value===0?"zero":""} ${extra}">
    <div class="summaryIcon">${icon}</div><div class="summaryTitle">${title}</div>
@@ -550,24 +541,11 @@ function vPregled(){
  <div class="sectionHead"><h2>Danas</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
  <div class="sectionCard">${todayHTML}</div>
 
- <div class="sectionHead"><h2>Naredno</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
- <div class="sectionCard">${upcomingHTML}</div>
-
- <div class="sectionHead reviewTitle"><div><h2>Pregled narednih 30 dana</h2><div class="sm mute">Sve aktivne akcije kojima rok dospijeva u ovom periodu.</div></div></div>
- <div class="sectionCard reviewDashboard">
-  ${reviewGroup("Kasni",overdue)}
-  ${reviewGroup("Danas",todayRows)}
-  ${reviewGroup("Narednih 7 dana",next7)}
-  ${reviewGroup("8–30 dana",next30)}
-  ${!overdue.length&&!todayRows.length&&!next7.length&&!next30.length?`<div class="dashboardEmpty">Nema rokova u narednih 30 dana.</div>`:""}
- </div>
-
- <div class="sectionHead"><h2>Aktivne beleške</h2><button class="sectionLink" data-go="beleske">Prikaži sve ›</button></div>
- <div class="sectionCard">${notesHTML}</div>`;
+ <div class="sectionHead"><h2>Dospijeva u narednih 7 dana</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
+ <div class="sectionCard">${next7HTML}</div>`;
 
  $("#view").querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{dashboardArea=b.dataset.area;render()});
  $("#view").querySelectorAll("[data-item]").forEach(el=>el.onclick=()=>itemDialog(Number(el.dataset.item)));
- $("#view").querySelectorAll("[data-note]").forEach(el=>el.onclick=()=>noteDialog(Number(el.dataset.note)));
  $("#view").querySelectorAll("[data-done]").forEach(b=>b.onclick=e=>{e.stopPropagation();const x=S.items.find(z=>z.ID===Number(b.dataset.done));if(!x)return;if(confirm(`Završi akciju "${x.Zadatak}"?`)){x.Status="Završeno";save();render()}});
  $("#view").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{route=b.dataset.go;render()});
 }
@@ -1059,7 +1037,7 @@ function resetData(){
 function bindCards(){document.querySelectorAll("[data-item]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.item)))}
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260829-6").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260829-7").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
