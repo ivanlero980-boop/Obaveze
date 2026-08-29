@@ -453,7 +453,7 @@ function head(title,sub=""){
 function vPregled(){
  const actions=activeActions().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
  const ps=projects().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
- const ns=notes().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
+ const ns=notes().filter(x=>x.Status!=="Arhivirana"&&x.Status!=="Završeno"&&(x.Oblast||"Poslovno")===dashboardArea);
  const overdue=actions.filter(x=>x.Rok&&daysTo(x.Rok)<0).sort(attentionSort);
  const dueToday=actions.filter(x=>x.Rok===today());
  const strategic=actions.filter(x=>x.Prioritet==="Strateško");
@@ -529,7 +529,7 @@ function actionListCard(x){
  return `<div class="card secondaryCard ${cls}" data-item="${x.ID}">
   <div class="secondaryTop"><div class="taskTitle grow">${esc(x.Zadatak)}</div><div class="secondaryDue ${dueCls}">${esc(due)}</div></div>
   ${meta?`<div class="secondaryMeta">${meta}</div>`:""}
-  ${x.Prioritet==="Strateško"?`<div class="meta"><span class="chip priority strategic">Strateško</span></div>`:""}
+  ${(x.Prioritet==="Strateško"||unchangedReviewStreak(x.ID)>=3)?`<div class="meta">${x.Prioritet==="Strateško"?`<span class="chip priority strategic">Strateško</span>`:""}${unchangedReviewStreak(x.ID)>=3?`<span class="chip priority strategic">${unchangedReviewStreak(x.ID)} pregleda bez promjene</span>`:""}</div>`:""}
  </div>`;
 }
 function vAkcije(){
@@ -684,7 +684,7 @@ function editItem(x=null,type="Akcija",preset={}){
  <label class="f"><span class="sm mute">Opis / kontekst</span><textarea id="eProjectDetails">${esc(x["Detalji dogovora"]||"")}</textarea></label>`:""}
  ${x.Tip==="Akcija"?`<div id="eSourceWrap"><label class="f"><span class="sm mute">Izvor${x.Tip==="Akcija"?" *":""}</span><select id="eSource">${["","Kolegijum","Interni razno","1-1","Ad hoc","Klijenti","Regulator","Graz/uprava","Graz/ostalo","Eksterno razno"].map(v=>`<option value="${esc(v)}" ${x.Izvor===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>
  <label class="f" id="eSourceDetailWrap" style="display:none"><span class="sm mute" id="eSourceDetailLabel">Detalj izvora</span><input id="eSourceDetail" value="${esc(x["Detalj izvora"]||"")}"></label></div>`:""}
- ${x.Tip!=="Projekat"?`<details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
+ ${x.Tip==="Akcija"?`<details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
  
  ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label>`}
  
@@ -705,7 +705,7 @@ function editItem(x=null,type="Akcija",preset={}){
  if($("#eSource"))$("#eSource").onchange=updateSourceDetail;
  if($("#eArea"))$("#eArea").onchange=updateArea;
  updateArea();
- $("#eCancel").onclick=closeDlg;$("#eSave").onclick=()=>{
+ $("#eCancel").onclick=()=>{if(window.__weeklyCancel){const fn=window.__weeklyCancel;window.__weeklyCancel=null;closeDlg();fn()}else closeDlg()};$("#eSave").onclick=()=>{
   const task=$("#eTask").value.trim();if(!task){alert(x.Tip==="Akcija"?"Unesi akciju.":x.Tip==="Projekat"?"Unesi naziv projekta.":"Unesi belešku.");return;}
   if(x.Tip==="Projekat"&&!$("#eProjectDue")?.value){alert("Unesi rok projekta.");return;}
    if(x.Tip==="Akcija"){
@@ -731,7 +731,9 @@ function editItem(x=null,type="Akcija",preset={}){
   if(x.Tip==="Beleška"){x.Status="Aktivna";x.Odgovoran="";x.Rok="";x.Projekat="";x.ProjectID=null;x.Prioritet="";x.Sistem="";x.Izvor="";x["Detalj izvora"]="";x["Detalji dogovora"]="";x.Napomena="";}
   if(x.Tip==="Projekat")x.Status=x.Status==="Završen"?"Završen":"Aktivan";
   if(x.Tip==="Akcija"&&x._fromNoteId){const sourceNote=S.items.find(n=>n.ID===x._fromNoteId);if(sourceNote)sourceNote.Status="Arhivirana";delete x._fromNoteId;}
+  delete x._weeklyReviewNote;
   save();norm();closeDlg();
+  if(window.__weeklySaved){const fn=window.__weeklySaved;window.__weeklySaved=null;fn(x);return;}
   if(x.Tip==="Projekat")route="projekti";
   else if(x.Tip==="Beleška")route="beleske";
   render();
@@ -791,86 +793,85 @@ function personDialog(name){
 }
 function weeklyReview(){
  reviewActive=true;
- // Weekly review = overdue + actions due within the next 30 days.
  const a=activeActions().filter(x=>daysTo(x.Rok)<=30).slice().sort(attentionSort);
  const n=notes().filter(x=>x.Status!=="Arhivirana"&&x.Status!=="Završeno").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
  let i=0,ni=0,phase="actions";
  const result={date:today(),closed:0,moved:0,waiting:0,kept:0,notesKept:0,notesConverted:0,notesArchived:0,items:[]};
+ const history=[];
 
  const record=(x,action)=>result.items.push({id:x.ID,action});
- const dueLabel=x=>{
-  const d=daysTo(x.Rok);
-  if(d<0)return `Kasni ${Math.abs(d)} d`;
-  if(d===0)return "Danas";
-  if(d===1)return "Sjutra";
-  return `Za ${d} dana`;
- };
+ const dueLabel=x=>{const d=daysTo(x.Rok);if(d<0)return `Kasni ${Math.abs(d)} d`;if(d===0)return "Danas";if(d===1)return "Sjutra";return `Za ${d} dana`};
  const contextLabel=x=>x.ProjectID&&x.Projekat?`Projekat: ${x.Projekat}`:"Solo akcija";
 
+ const snapshot=(x,kind)=>({kind,id:x.ID,status:x.Status,rok:x.Rok,phase,i,ni,result:JSON.parse(JSON.stringify(result))});
+ const restoreLast=()=>{
+  const h=history.pop();if(!h)return;
+  const x=S.items.find(z=>z.ID===h.id);
+  if(x){x.Status=h.status;x.Rok=h.rok}
+  Object.keys(result).forEach(k=>delete result[k]);Object.assign(result,h.result);
+  phase=h.phase;i=h.i;ni=h.ni;save();
+  phase==="notes"?showNote():show();
+ };
  const finishReview=()=>{
-   reviewActive=false;S.weeklyReviews.push(result);save();
-   openDlg(`<h2>Nedeljni pregled završen</h2>
-   <div class="kpis" style="margin-top:12px">
-    <div class="kpi"><div class="xs">Akcija završeno</div><div class="num">${result.closed}</div></div>
-    <div class="kpi"><div class="xs">Pomjeren rok</div><div class="num">${result.moved}</div></div>
-    <div class="kpi"><div class="xs">Čeka drugog</div><div class="num">${result.waiting}</div></div>
-    <div class="kpi"><div class="xs">Ostavljeno</div><div class="num">${result.kept}</div></div>
-   </div>
+  reviewActive=false;S.weeklyReviews.push(result);save();
+  openDlg(`<h2>Nedeljni pregled završen</h2><div class="kpis" style="margin-top:12px">
+   <div class="kpi"><div class="xs">Akcija završeno</div><div class="num">${result.closed}</div></div>
+   <div class="kpi"><div class="xs">Pomjeren rok</div><div class="num">${result.moved}</div></div>
+   <div class="kpi"><div class="xs">Čeka drugog</div><div class="num">${result.waiting}</div></div>
+   <div class="kpi"><div class="xs">Ostavljeno</div><div class="num">${result.kept}</div></div></div>
    <div class="sm mute" style="margin:14px 0 8px">Beleške · ostavljeno ${result.notesKept} · pretvoreno ${result.notesConverted} · arhivirano ${result.notesArchived}</div>
    <button class="btn pri" style="width:100%" id="wrDone">Zatvori</button>`);
-   $("#wrDone").onclick=()=>{closeDlg();render()};
+  $("#wrDone").onclick=()=>{closeDlg();render()};
  };
+ const stopReview=()=>{reviewActive=false;result.partial=true;result.completedActions=i;result.completedNotes=ni;S.weeklyReviews.push(result);save();closeDlg();render()};
 
- const stopReview=()=>{
-  reviewActive=false;result.partial=true;result.completedActions=i;result.completedNotes=ni;S.weeklyReviews.push(result);save();closeDlg();render();
+ const convertNote=x=>{
+  const noteIndex=ni;
+  const previous=snapshot(x,"note");
+  const originalEditCancel=window.__weeklyCancel;
+  window.__weeklyCancel=()=>{reviewActive=true;ni=noteIndex;phase="notes";window.__weeklyCancel=originalEditCancel;showNote()};
+  window.__weeklySaved=(action)=>{
+   history.push(previous);result.notesConverted++;record(x,"note_convert");ni=noteIndex+1;phase="notes";reviewActive=true;
+   window.__weeklySaved=null;window.__weeklyCancel=originalEditCancel;showNote();
+  };
+  editItem(null,"Akcija",{Zadatak:x.Zadatak,Oblast:x.Oblast||"Poslovno",_fromNoteId:x.ID});
  };
 
  const showNote=()=>{
+  phase="notes";
   if(ni>=n.length)return finishReview();
   const x=n[ni];
-  openDlg(`<div class="xs">Nedeljni pregled · Beleške · ${ni+1}/${n.length}</div>
-   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
+  openDlg(`<div class="xs">Nedeljni pregled · Beleške · ${ni+1}/${n.length}</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
    <div class="meta"><span class="chip">${esc(x.Oblast||"Poslovno")}</span></div>
-   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="noteKeep">Ostavi</button><button class="btn pri grow" id="noteConvertReview">Pretvori u akciju</button></div>
+   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="noteKeep">Ostavi</button><button class="btn grow" id="noteConvertReview">Pretvori u akciju</button></div>
    <button class="btn" style="width:100%;margin-top:8px" id="noteArchiveReview">Arhiviraj</button>
-   <button class="btn" style="width:100%;margin-top:8px" id="wrStop">Prekini pregled</button>`);
-  $("#wrStop").onclick=stopReview;
-  $("#noteKeep").onclick=()=>{result.notesKept++;record(x,"note_keep");ni++;showNote()};
-  $("#noteArchiveReview").onclick=()=>{x.Status="Arhivirana";result.notesArchived++;record(x,"note_archive");save();ni++;showNote()};
-  $("#noteConvertReview").onclick=()=>{
-   // Conversion uses the normal Action form so required owner/deadline/source rules remain unchanged.
-   reviewActive=false;
-   editItem(null,"Akcija",{Zadatak:x.Zadatak,Oblast:x.Oblast||"Poslovno",_fromNoteId:x.ID,_weeklyReviewNote:true});
-  };
+   <div class="btnrow" style="margin-top:8px">${history.length?`<button class="btn grow" id="wrBack">Nazad</button>`:""}<button class="btn grow" id="wrStop">Prekini pregled</button></div>`);
+  $("#wrStop").onclick=stopReview;if($("#wrBack"))$("#wrBack").onclick=restoreLast;
+  $("#noteKeep").onclick=()=>{history.push(snapshot(x,"note"));result.notesKept++;record(x,"note_keep");ni++;showNote()};
+  $("#noteArchiveReview").onclick=()=>{history.push(snapshot(x,"note"));x.Status="Arhivirana";result.notesArchived++;record(x,"note_archive");save();ni++;showNote()};
+  $("#noteConvertReview").onclick=()=>convertNote(x);
  };
 
  const show=()=>{
-  if(i>=a.length){phase="notes";return showNote()}
+  phase="actions";
+  if(i>=a.length)return showNote();
   const x=a[i],streak=unchangedReviewStreak(x.ID);
-  openDlg(`<div class="xs">Nedeljni pregled · Akcije · ${i+1}/${a.length}</div>
-   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
-   <div class="weeklyContext">${esc(contextLabel(x))}</div>
-   <div class="meta">
-    <span class="chip date">${esc(dueLabel(x))} · ${esc(fmtDate(x.Rok))}</span>
-    ${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}
-    ${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}
-    ${x.Status==="Čeka drugog"?`<span class="chip">Čeka drugog</span>`:""}
-    ${streak>=2?`<span class="chip priority strategic">${streak} pregleda bez promjene</span>`:""}
-   </div>
+  openDlg(`<div class="xs">Nedeljni pregled · Akcije · ${i+1}/${a.length}</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
+   <div class="weeklyContext">${esc(contextLabel(x))}</div><div class="meta">
+   <span class="chip date">${esc(dueLabel(x))} · ${esc(fmtDate(x.Rok))}</span>${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}${x.Status==="Čeka drugog"?`<span class="chip">Čeka drugog</span>`:""}${streak>=3?`<span class="chip priority strategic">${streak} pregleda bez promjene</span>`:""}</div>
    <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="keep">Ostavi</button><button class="btn grow" id="wait">Čeka drugog</button></div>
    <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="date">Promijeni rok</button><button class="btn pri grow" id="finish">Završi</button></div>
-   <button class="btn" style="width:100%;margin-top:8px" id="wrStop">Prekini pregled</button>`);
-  $("#wrStop").onclick=stopReview;
-  $("#keep").onclick=()=>{result.kept++;record(x,"keep");i++;show()};
-  $("#wait").onclick=()=>{x.Status="Čeka drugog";result.waiting++;record(x,"wait");save();i++;show()};
-  $("#finish").onclick=()=>{x.Status="Završeno";result.closed++;record(x,"finish");save();i++;show()};
+   <div class="btnrow" style="margin-top:8px">${history.length?`<button class="btn grow" id="wrBack">Nazad</button>`:""}<button class="btn grow" id="wrStop">Prekini pregled</button></div>`);
+  $("#wrStop").onclick=stopReview;if($("#wrBack"))$("#wrBack").onclick=restoreLast;
+  $("#keep").onclick=()=>{history.push(snapshot(x,"action"));result.kept++;record(x,"keep");i++;show()};
+  $("#wait").onclick=()=>{history.push(snapshot(x,"action"));x.Status="Čeka drugog";result.waiting++;record(x,"wait");save();i++;show()};
+  $("#finish").onclick=()=>{history.push(snapshot(x,"action"));x.Status="Završeno";result.closed++;record(x,"finish");save();i++;show()};
   $("#date").onclick=()=>{
-    openDlg(`<div class="xs">Promijeni rok</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
-     <div class="weeklyContext">${esc(contextLabel(x))}</div>
-     <label class="f" style="margin-top:14px"><span class="sm mute">Novi rok</span><input type="date" id="wrDate" value="${esc(x.Rok)}"></label>
-     <div class="btnrow"><button class="btn grow" id="wrDateBack">Nazad</button><button class="btn pri grow" id="wrDateSave">Sačuvaj</button></div>`);
-    $("#wrDateBack").onclick=show;
-    $("#wrDateSave").onclick=()=>{const d=$("#wrDate").value;if(!d)return;x.Rok=d;result.moved++;record(x,"move");save();i++;show()};
+   openDlg(`<div class="xs">Promijeni rok</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2><div class="weeklyContext">${esc(contextLabel(x))}</div>
+    <label class="f" style="margin-top:14px"><span class="sm mute">Novi rok</span><input type="date" id="wrDate" value="${esc(x.Rok)}"></label>
+    <div class="btnrow"><button class="btn grow" id="wrDateBack">Nazad</button><button class="btn pri grow" id="wrDateSave">Sačuvaj</button></div>`);
+   $("#wrDateBack").onclick=show;
+   $("#wrDateSave").onclick=()=>{const d=$("#wrDate").value;if(!d)return;history.push(snapshot(x,"action"));x.Rok=d;result.moved++;record(x,"move");save();i++;show()};
   };
  };
  show();
@@ -887,6 +888,15 @@ function reviewHistoryDialog(){
 }
 
 function notesDialog(){openDlg(`<div class="row between"><h2>Beleške</h2><button class="btn" id="nc">×</button></div><div class="list" style="margin-top:12px">${notes().map(n=>`<div class="card tight"><b>${esc(n.Zadatak)}</b><div class="sm mute">${esc(n.Projekat||n.Sistem||"")}</div><button class="btn sm" data-noteaction="${n.ID}" style="margin-top:8px">Pretvori u akciju</button></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`);$("#nc").onclick=closeDlg;$("#dlgBody").querySelectorAll("[data-noteaction]").forEach(b=>b.onclick=()=>{const n=S.items.find(x=>x.ID===Number(b.dataset.noteaction));n.Tip="Akcija";n.Status="Otvoreno";n.Odgovoran=n.Odgovoran||"Ivan";save();closeDlg();render()})}
+function projectArchiveDialog(id){
+ const p=S.items.find(x=>x.ID===id);if(!p)return;
+ openDlg(`<div class="row between"><h2>${esc(p.Projekat||p.Zadatak)}</h2><button class="btn" id="pac">×</button></div>
+ <div class="meta" style="margin:10px 0">${p.Rok?`<span class="chip date">Rok ${esc(fmtDate(p.Rok))}</span>`:""}${p.Sistem?`<span class="chip">${esc(p.Sistem)}</span>`:""}</div>
+ ${p["Detalji dogovora"]?`<div class="noteFull">${esc(p["Detalji dogovora"])}</div>`:""}
+ <button class="btn pri" style="width:100%;margin-top:18px" id="projectRestore">Vrati projekat u rad</button>`);
+ $("#pac").onclick=closeDlg;
+ $("#projectRestore").onclick=()=>{p.Status="Aktivan";save();closeDlg();render()};
+}
 function noteArchiveDialog(id){
  const n=S.items.find(x=>x.ID===id);if(!n)return;
  openDlg(`<div class="row between"><h2>Arhivirana beleška</h2><button class="btn" id="nac">×</button></div>
@@ -908,7 +918,7 @@ function archiveDialog(){
  ${!total?`<div class="empty">Arhiva je prazna.</div>`:""}`);
  $("#ac").onclick=closeDlg;
  bindCards();
- $("#dlgBody").querySelectorAll("[data-arch-project]").forEach(b=>b.onclick=()=>itemDialog(Number(b.dataset.archProject)));
+ $("#dlgBody").querySelectorAll("[data-arch-project]").forEach(b=>b.onclick=()=>projectArchiveDialog(Number(b.dataset.archProject)));
  $("#dlgBody").querySelectorAll("[data-arch-note]").forEach(b=>b.onclick=()=>noteArchiveDialog(Number(b.dataset.archNote)));
 }
 function exportData(){
