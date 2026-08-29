@@ -416,7 +416,7 @@ function taskCard(x){
   </div>
  </div>`;
 }
-let route="pregled",reviewActive=false;
+let route="pregled",reviewActive=false,dashboardArea="Poslovno";
 function render(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("on",b.dataset.nav===route));
  ({pregled:vPregled,akcije:vAkcije,projekti:vProjekti,beleske:vBeleske}[route]||vPregled)();
@@ -426,9 +426,9 @@ function head(title,sub=""){
  return `<div class="top"><div><h1>${esc(title)}</h1>${sub?`<div class="sm mute">${esc(sub)}</div>`:""}</div><button class="btn" id="menuBtn" aria-label="Meni">☰</button></div>`;
 }
 function vPregled(){
- const actions=activeActions();
- const ps=projects();
- const ns=notes();
+ const actions=activeActions().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
+ const ps=projects().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
+ const ns=notes().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
  const overdue=actions.filter(x=>x.Rok&&daysTo(x.Rok)<0).sort(attentionSort);
  const dueToday=actions.filter(x=>x.Rok===today());
  const strategic=actions.filter(x=>x.Prioritet==="Strateško");
@@ -473,6 +473,7 @@ function vPregled(){
    <div class="priorityCard"><div class="priorityLabel"><span class="star">☆</span>Prioriteti</div><div class="priorityNumber">${strategic.length}</div><div class="priorityFoot">strateških</div></div>
   </div>
  </section>
+ <div class="tabs areaTabs" style="margin-top:12px"><button class="btn ${dashboardArea==="Poslovno"?"on":""}" data-area="Poslovno">Poslovno</button><button class="btn ${dashboardArea==="Privatno"?"on":""}" data-area="Privatno">Privatno</button></div>
  <div class="dashboardKpis">
   ${tile(ICONS.action,"Akcije",actions.length,"otvorenih")}
   ${tile(ICONS.project,"Projekti",ps.length,"aktivnih")}
@@ -489,6 +490,7 @@ function vPregled(){
  <div class="sectionHead"><h2>Naredno</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
  <div class="sectionCard">${upcomingHTML}</div>`;
 
+ $("#view").querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{dashboardArea=b.dataset.area;render()});
  $("#view").querySelectorAll("[data-item]").forEach(el=>el.onclick=()=>itemDialog(Number(el.dataset.item)));
  $("#view").querySelectorAll("[data-done]").forEach(b=>b.onclick=e=>{e.stopPropagation();const x=S.items.find(z=>z.ID===Number(b.dataset.done));if(!x)return;if(confirm(`Završi akciju "${x.Zadatak}"?`)){x.Status="Završeno";save();render()}});
  $("#view").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{route=b.dataset.go;render()});
@@ -498,7 +500,7 @@ function actionListCard(x){
  const cls=d<0?"late":d<=7?"soon":x.Prioritet==="Strateško"?"strategic":"";
  const due=x.Rok?(d<0?`Kasni ${Math.abs(d)} d`:d===0?"Danas":fmtDate(x.Rok)):"Bez roka";
  const dueCls=d<0?"late":d<=7?"soon":"";
- const meta=[x.Odgovoran,x.Projekat,x.Status==="Čeka drugog"?"Čeka drugog":""].filter(Boolean).map(esc).join(" · ");
+ const meta=[x.Oblast==="Privatno"?"Privatno":"",x.Odgovoran,x.Projekat,x.Status==="Čeka drugog"?"Čeka drugog":""].filter(Boolean).map(esc).join(" · ");
  return `<div class="card secondaryCard ${cls}" data-item="${x.ID}">
   <div class="secondaryTop"><div class="taskTitle grow">${esc(x.Zadatak)}</div><div class="secondaryDue ${dueCls}">${esc(due)}</div></div>
   ${meta?`<div class="secondaryMeta">${meta}</div>`:""}
@@ -589,14 +591,15 @@ function editItem(x=null,type="Akcija",preset={}){
  const isNew=!x; const oldProjectName=x&&x.Tip==="Projekat"?(x.Projekat||x.Zadatak||""):""; x=x||{"Tip":type,"Status":type==="Akcija"?"Otvoreno":type==="Projekat"?"Aktivan":"","Prioritet":"Operativno",...preset};
  openDlg(`<h2>${isNew?"Novo":"Uredi"} · ${esc(x.Tip)}</h2>
  <label class="f"><span class="sm mute">${x.Tip==="Projekat"?"Naziv projekta":x.Tip==="Beleška"?"Beleška":"Šta treba uraditi?"}</span><textarea id="eTask">${esc(x.Tip==="Projekat"?(x.Projekat||x.Zadatak):x.Zadatak||"")}</textarea></label>
+ <label class="f"><span class="sm mute">Oblast</span><select id="eArea"><option value="Poslovno" ${(x.Oblast||"Poslovno")==="Poslovno"?"selected":""}>Poslovno</option><option value="Privatno" ${x.Oblast==="Privatno"?"selected":""}>Privatno</option></select></label>
  ${x.Tip==="Akcija"?`<div class="row"><label class="f grow"><span class="sm mute">Odgovoran *</span><input id="eOwner" value="${esc(x.Odgovoran||"Ivan")}"></label><label class="f grow"><span class="sm mute">Rok *</span><input type="date" id="eDue" value="${esc(x.Rok||"")}"></label></div>`:""}
  ${x.Tip==="Akcija"&&!isNew?`<label class="f"><span class="sm mute">Status</span><select id="eActionStatus">${["Otvoreno","Čeka drugog","Završeno"].map(v=>`<option ${x.Status===v?"selected":""}>${v}</option>`).join("")}</select></label>`:""}
  ${x.Tip==="Projekat"?`<label class="f"><span class="sm mute">Status projekta</span><select id="eProjectStatus">${["Aktivan","Na čekanju","Završen"].map(v=>`<option ${x.Status===v?"selected":""}>${v}</option>`).join("")}</select></label>`:""}
- ${x.Tip!=="Projekat"?`<label class="f"><span class="sm mute">Izvor${x.Tip==="Akcija"?" *":""}</span><select id="eSource">${["","Kolegijum","Interni razno","1-1","Ad hoc","Klijenti","Regulator","Graz/uprava","Graz/ostalo","Eksterno razno"].map(v=>`<option value="${esc(v)}" ${x.Izvor===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>
- <label class="f" id="eSourceDetailWrap" style="display:none"><span class="sm mute" id="eSourceDetailLabel">Detalj izvora</span><input id="eSourceDetail" value="${esc(x["Detalj izvora"]||"")}"></label>`:""}
+ ${x.Tip!=="Projekat"?`<div id="eSourceWrap"><label class="f"><span class="sm mute">Izvor${x.Tip==="Akcija"?" *":""}</span><select id="eSource">${["","Kolegijum","Interni razno","1-1","Ad hoc","Klijenti","Regulator","Graz/uprava","Graz/ostalo","Eksterno razno"].map(v=>`<option value="${esc(v)}" ${x.Izvor===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>
+ <label class="f" id="eSourceDetailWrap" style="display:none"><span class="sm mute" id="eSourceDetailLabel">Detalj izvora</span><input id="eSourceDetail" value="${esc(x["Detalj izvora"]||"")}"></label></div>`:""}
  <details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
  
- ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow"><span class="sm mute">Sistem</span><select id="eSystem">${["","Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${x.Sistem===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label></div>`:`<label class="f"><span class="sm mute">Sistem</span><select id="eSystem">${["","Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>`}
+ ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f" id="eSystemWrap"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label>`}
  
  <label class="f"><span class="sm mute">${x.Tip==="Beleška"?"Kontekst / detalji":"Detalji / dogovor"}</span><textarea id="eDetails">${esc(x["Detalji dogovora"]||x.Napomena||"")}</textarea></label>
  </div></details>
@@ -606,7 +609,15 @@ function editItem(x=null,type="Akcija",preset={}){
   const labels={"Interni razno":"Pojasni izvor","1-1":"Sa kim?","Klijenti":"Klijent / druga strana","Eksterno razno":"Druga strana / pojašnjenje"};
   if(wrap){const show=!!labels[v];wrap.style.display=show?"block":"none";if(lab)lab.textContent=(labels[v]||"Detalj izvora")+(x.Tip==="Akcija"&&show?" *":"");if(!show&&$("#eSourceDetail"))$("#eSourceDetail").value="";}
  };
- if($("#eSource"))$("#eSource").onchange=updateSourceDetail;updateSourceDetail();
+ const updateArea=()=>{
+  const business=($("#eArea")?.value||"Poslovno")==="Poslovno";
+  if($("#eSourceWrap"))$("#eSourceWrap").style.display=business?"block":"none";
+  if($("#eSystemWrap"))$("#eSystemWrap").style.display=business?"block":"none";
+  updateSourceDetail();
+ };
+ if($("#eSource"))$("#eSource").onchange=updateSourceDetail;
+ if($("#eArea"))$("#eArea").onchange=updateArea;
+ updateArea();
  $("#eCancel").onclick=closeDlg;$("#eSave").onclick=()=>{
   const task=$("#eTask").value.trim();if(!task){alert(x.Tip==="Akcija"?"Unesi akciju.":x.Tip==="Projekat"?"Unesi naziv projekta.":"Unesi belešku.");return;}
    if(x.Tip==="Akcija"){
@@ -615,14 +626,15 @@ function editItem(x=null,type="Akcija",preset={}){
     const sourceDetail=$("#eSourceDetail")?.value.trim()||"";
     if(!owner){alert("Unesi odgovorno lice.");return;}
     if(!due){alert("Unesi rok.");return;}
-    if(!source){alert("Izaberi izvor.");return;}
-    if(needsDetail&&!sourceDetail){alert("Popuni dodatno pojašnjenje izvora.");return;}
+    if(($("#eArea")?.value||"Poslovno")==="Poslovno"&&!source){alert("Izaberi izvor.");return;}
+    if(($("#eArea")?.value||"Poslovno")==="Poslovno"&&needsDetail&&!sourceDetail){alert("Popuni dodatno pojašnjenje izvora.");return;}
    }
   if(isNew){x.ID=++S.lastId;S.items.push(x)}
   if(x.Tip==="Projekat"){
     x.Projekat=task;x.Zadatak=task;
     if(!isNew&&oldProjectName!==task)S.items.filter(a=>a.Tip==="Akcija"&&Number(a.ProjectID)===Number(x.ID)).forEach(a=>a.Projekat=task);
    }else x.Zadatak=task;
+  x.Oblast=$("#eArea")?.value||"Poslovno";
   if(x.Tip==="Akcija"){x.Odgovoran=$("#eOwner").value.trim();x.Rok=$("#eDue").value;x.Status=$("#eActionStatus")?.value||x.Status||"Otvoreno"}
   if(x.Tip==="Projekat"){x.Status=$("#eProjectStatus")?.value||x.Status||"Aktivan"}
   x.Projekat=x.Projekat||"";x.ProjectID=x.ProjectID||null;x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=$("#eSystem")?.value||x.Sistem||"";
