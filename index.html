@@ -573,10 +573,17 @@ function editItem(x=null,type="Akcija",preset={}){
  <details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
  
  ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f"><span class="sm mute">Sistem</span><select id="eSystem">${["","Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>`}
- <label class="f"><span class="sm mute">Izvor</span><input id="eSource" list="sourceOptions" value="${esc(x.Izvor||"")}" placeholder="Opciono"><datalist id="sourceOptions"><option value="Kolegijum"><option value="Regulator"><option value="Graz/uprava"></datalist></label>
+ <label class="f"><span class="sm mute">Izvor</span><select id="eSource">${["","Kolegijum","Interni razno","1-1","Ad hoc","Klijenti","Regulator","Graz/uprava","Graz/ostalo","Eksterno razno"].map(v=>`<option value="${esc(v)}" ${x.Izvor===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>
+ <label class="f" id="eSourceDetailWrap" style="display:none"><span class="sm mute" id="eSourceDetailLabel">Detalj izvora</span><input id="eSourceDetail" value="${esc(x["Detalj izvora"]||"")}"></label>
  <label class="f"><span class="sm mute">${x.Tip==="Beleška"?"Kontekst / detalji":"Detalji / dogovor"}</span><textarea id="eDetails">${esc(x["Detalji dogovora"]||x.Napomena||"")}</textarea></label>
  </div></details>
  <div class="btnrow" style="margin-top:14px"><button class="btn pri grow" id="eSave">Sačuvaj</button><button class="btn" id="eCancel">Otkaži</button></div>`);
+ const updateSourceDetail=()=>{
+  const v=$("#eSource")?.value||"",wrap=$("#eSourceDetailWrap"),lab=$("#eSourceDetailLabel");
+  const labels={"Interni razno":"Pojasni izvor","1-1":"Sa kim?","Klijenti":"Klijent / druga strana","Eksterno razno":"Druga strana / pojašnjenje"};
+  if(wrap){const show=!!labels[v];wrap.style.display=show?"block":"none";if(lab)lab.textContent=labels[v]||"Detalj izvora";if(!show&&$("#eSourceDetail"))$("#eSourceDetail").value="";}
+ };
+ $("#eSource").onchange=updateSourceDetail;updateSourceDetail();
  $("#eCancel").onclick=closeDlg;$("#eSave").onclick=()=>{
   const task=$("#eTask").value.trim();if(!task)return;
   if(isNew){x.ID=++S.lastId;S.items.push(x)}
@@ -584,7 +591,7 @@ function editItem(x=null,type="Akcija",preset={}){
   if(x.Tip==="Akcija"){x.Odgovoran=$("#eOwner").value.trim();x.Rok=$("#eDue").value;x.Status=x.Status||"Otvoreno"}
   if(x.Tip==="Projekat"){x.Status=$("#eProjectStatus")?.value||x.Status||"Aktivan"}
   x.Projekat=x.Projekat||"";x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=$("#eSystem")?.value||x.Sistem||"";
-  x.Izvor=$("#eSource")?.value.trim()||"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena="";
+  x.Izvor=$("#eSource")?.value.trim()||"";x["Detalj izvora"]=$("#eSourceDetail")?.value.trim()||"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena="";
   save();norm();closeDlg();
   if(x.Tip==="Projekat")route="projekti";
   else if(x.Tip==="Beleška")route="beleske";
