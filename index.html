@@ -318,6 +318,7 @@ nav button.on:after{
 .projectActionGroup{margin-top:13px}
 .projectActionHead{display:flex;justify-content:space-between;align-items:center;padding:0 2px 6px;font-size:13px;font-weight:750;color:var(--muted)}
 .noteInput{min-height:180px}.noteFull{white-space:pre-wrap;font-size:16px;line-height:1.5;margin-top:14px}
+.weeklyContext{margin:10px 0 8px;font-size:13px;font-weight:750;color:var(--muted)}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -756,41 +757,83 @@ function projectDialog(id){
 function personDialog(name){const a=activeActions().filter(x=>x.Odgovoran===name);openDlg(`<div class="row between"><h2>${esc(name)}</h2><button class="btn" id="oc">×</button></div><div class="sm mute" style="margin:8px 0 12px">${a.length} otvorenih stavki</div><button class="btn pri" id="oa">+ Akcija</button><div class="list" style="margin-top:12px">${a.map(taskCard).join("")||`<div class="empty">Nema otvorenih akcija.</div>`}</div>`);$("#oc").onclick=closeDlg;$("#oa").onclick=()=>editItem(null,"Akcija",{Odgovoran:name});bindCards()}
 function weeklyReview(){
  reviewActive=true;
- const a=activeActions().slice().sort(attentionSort);
- let i=0;
- const result={date:today(),closed:0,moved:0,waiting:0,kept:0,items:[]};
+ // Weekly review = overdue + actions due within the next 30 days.
+ const a=activeActions().filter(x=>daysTo(x.Rok)<=30).slice().sort(attentionSort);
+ const n=notes().filter(x=>x.Status!=="Arhivirana"&&x.Status!=="Završeno").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
+ let i=0,ni=0,phase="actions";
+ const result={date:today(),closed:0,moved:0,waiting:0,kept:0,notesKept:0,notesConverted:0,notesArchived:0,items:[]};
 
  const record=(x,action)=>result.items.push({id:x.ID,action});
+ const dueLabel=x=>{
+  const d=daysTo(x.Rok);
+  if(d<0)return `Kasni ${Math.abs(d)} d`;
+  if(d===0)return "Danas";
+  if(d===1)return "Sjutra";
+  return `Za ${d} dana`;
+ };
+ const contextLabel=x=>x.ProjectID&&x.Projekat?`Projekat: ${x.Projekat}`:"Solo akcija";
 
  const finishReview=()=>{
    reviewActive=false;S.weeklyReviews.push(result);save();
    openDlg(`<h2>Nedeljni pregled završen</h2>
    <div class="kpis" style="margin-top:12px">
-    <div class="kpi"><div class="xs">Završeno</div><div class="num">${result.closed}</div></div>
+    <div class="kpi"><div class="xs">Akcija završeno</div><div class="num">${result.closed}</div></div>
     <div class="kpi"><div class="xs">Pomjeren rok</div><div class="num">${result.moved}</div></div>
     <div class="kpi"><div class="xs">Čeka drugog</div><div class="num">${result.waiting}</div></div>
     <div class="kpi"><div class="xs">Ostavljeno</div><div class="num">${result.kept}</div></div>
    </div>
+   <div class="sm mute" style="margin:14px 0 8px">Beleške · ostavljeno ${result.notesKept} · pretvoreno ${result.notesConverted} · arhivirano ${result.notesArchived}</div>
    <button class="btn pri" style="width:100%" id="wrDone">Zatvori</button>`);
    $("#wrDone").onclick=()=>{closeDlg();render()};
  };
 
- const show=()=>{
-  if(i>=a.length)return finishReview();
-  const x=a[i],streak=unchangedReviewStreak(x.ID);
-  openDlg(`<div class="xs">Nedeljni pregled · ${i+1}/${a.length}</div>
-   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
-   <div class="meta">${x.Projekat?`<span class="chip">${esc(x.Projekat)}</span>`:""}${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}${x.Rok?`<span class="chip date">${esc(fmtDate(x.Rok))}</span>`:""}${streak>=2?`<span class="chip priority strategic">${streak} pregleda bez promjene</span>`:""}</div>
-   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="keep">Ostavi</button><button class="btn grow" id="wait">Čeka drugog</button></div>
-   <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="date">Promijeni rok</button><button class="btn pri grow" id="finish">Završi</button></div><button class="btn" style="width:100%;margin-top:8px" id="wrStop">Prekini pregled</button>`);
+ const stopReview=()=>{
+  reviewActive=false;result.partial=true;result.completedActions=i;result.completedNotes=ni;S.weeklyReviews.push(result);save();closeDlg();render();
+ };
 
-  $("#wrStop").onclick=()=>{reviewActive=false;result.partial=true;result.completed=i;S.weeklyReviews.push(result);save();closeDlg();render()};
-   $("#keep").onclick=()=>{result.kept++;record(x,"keep");i++;show()};
+ const showNote=()=>{
+  if(ni>=n.length)return finishReview();
+  const x=n[ni];
+  openDlg(`<div class="xs">Nedeljni pregled · Beleške · ${ni+1}/${n.length}</div>
+   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
+   <div class="meta"><span class="chip">${esc(x.Oblast||"Poslovno")}</span></div>
+   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="noteKeep">Ostavi</button><button class="btn pri grow" id="noteConvertReview">Pretvori u akciju</button></div>
+   <button class="btn" style="width:100%;margin-top:8px" id="noteArchiveReview">Arhiviraj</button>
+   <button class="btn" style="width:100%;margin-top:8px" id="wrStop">Prekini pregled</button>`);
+  $("#wrStop").onclick=stopReview;
+  $("#noteKeep").onclick=()=>{result.notesKept++;record(x,"note_keep");ni++;showNote()};
+  $("#noteArchiveReview").onclick=()=>{x.Status="Arhivirana";result.notesArchived++;record(x,"note_archive");save();ni++;showNote()};
+  $("#noteConvertReview").onclick=()=>{
+   // Conversion uses the normal Action form so required owner/deadline/source rules remain unchanged.
+   reviewActive=false;
+   editItem(null,"Akcija",{Zadatak:x.Zadatak,Oblast:x.Oblast||"Poslovno",_fromNoteId:x.ID,_weeklyReviewNote:true});
+  };
+ };
+
+ const show=()=>{
+  if(i>=a.length){phase="notes";return showNote()}
+  const x=a[i],streak=unchangedReviewStreak(x.ID);
+  openDlg(`<div class="xs">Nedeljni pregled · Akcije · ${i+1}/${a.length}</div>
+   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
+   <div class="weeklyContext">${esc(contextLabel(x))}</div>
+   <div class="meta">
+    <span class="chip date">${esc(dueLabel(x))} · ${esc(fmtDate(x.Rok))}</span>
+    ${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}
+    ${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}
+    ${x.Status==="Čeka drugog"?`<span class="chip">Čeka drugog</span>`:""}
+    ${streak>=2?`<span class="chip priority strategic">${streak} pregleda bez promjene</span>`:""}
+   </div>
+   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="keep">Ostavi</button><button class="btn grow" id="wait">Čeka drugog</button></div>
+   <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="date">Promijeni rok</button><button class="btn pri grow" id="finish">Završi</button></div>
+   <button class="btn" style="width:100%;margin-top:8px" id="wrStop">Prekini pregled</button>`);
+  $("#wrStop").onclick=stopReview;
+  $("#keep").onclick=()=>{result.kept++;record(x,"keep");i++;show()};
   $("#wait").onclick=()=>{x.Status="Čeka drugog";result.waiting++;record(x,"wait");save();i++;show()};
   $("#finish").onclick=()=>{x.Status="Završeno";result.closed++;record(x,"finish");save();i++;show()};
   $("#date").onclick=()=>{
     openDlg(`<div class="xs">Promijeni rok</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
-     <label class="f" style="margin-top:14px"><span class="sm mute">Novi rok</span><input type="date" id="wrDate" value="${esc(x.Rok||today())}"></label>
+     <div class="weeklyContext">${esc(contextLabel(x))}</div>
+     <label class="f" style="margin-top:14px"><span class="sm mute">Novi rok</span><input type="date" id="wrDate" value="${esc(x.Rok)}"></label>
      <div class="btnrow"><button class="btn grow" id="wrDateBack">Nazad</button><button class="btn pri grow" id="wrDateSave">Sačuvaj</button></div>`);
     $("#wrDateBack").onclick=show;
     $("#wrDateSave").onclick=()=>{const d=$("#wrDate").value;if(!d)return;x.Rok=d;result.moved++;record(x,"move");save();i++;show()};
@@ -801,7 +844,7 @@ function weeklyReview(){
 function reviewHistoryDialog(){
  const rs=(S.weeklyReviews||[]).slice().reverse();
  openDlg(`<div class="row between"><h2>Istorija nedeljnih pregleda</h2><button class="btn" id="rhc">×</button></div>
- <div class="list" style="margin-top:12px">${rs.map(r=>`<div class="card tight"><b>${esc(fmtDate(r.date||""))}${r.partial?" · prekinut":""}</b><div class="sm mute" style="margin-top:5px">Završeno ${r.closed||0} · Rok pomjeren ${r.moved||0} · Čeka ${r.waiting||0} · Ostavljeno ${r.kept||0}</div></div>`).join("")||`<div class="empty">Još nema nedeljnih pregleda.</div>`}</div>`);
+ <div class="list" style="margin-top:12px">${rs.map(r=>`<div class="card tight"><b>${esc(fmtDate(r.date||""))}${r.partial?" · prekinut":""}</b><div class="sm mute" style="margin-top:5px">Akcije: završeno ${r.closed||0} · rok ${r.moved||0} · čeka ${r.waiting||0} · ostavljeno ${r.kept||0}</div><div class="sm mute" style="margin-top:3px">Beleške: ostavljeno ${r.notesKept||0} · pretvoreno ${r.notesConverted||0} · arhivirano ${r.notesArchived||0}</div></div>`).join("")||`<div class="empty">Još nema nedeljnih pregleda.</div>`}</div>`);
  $("#rhc").onclick=closeDlg;
 }
 
