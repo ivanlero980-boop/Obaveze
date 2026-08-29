@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260829-1"><link rel="apple-touch-icon" href="icon-192.png?v=20260829-1"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260829-2"><link rel="apple-touch-icon" href="icon-192.png?v=20260829-2"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -303,6 +303,10 @@ function norm(){
  save();
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+
+function isStandalone(){
+ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
 
 function daysSince(d){
  if(!d)return 99999;
@@ -610,7 +614,7 @@ document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{route=b.datase
 $("#fab").onclick=()=>{if(route==="akcije")editItem(null,"Akcija");else if(route==="projekti")editItem(null,"Projekat");else if(route==="beleske")editItem(null,"Beleška");else quickAdd()};$("#dlg").addEventListener("click",e=>{if(e.target===$("#dlg"))closeDlg()});
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260829-1").then(reg=>reg.update()).catch(()=>{});
+  navigator.serviceWorker.register("sw.js?v=20260829-2").then(reg=>reg.update()).catch(()=>{});
  });
 }
 norm();render();
