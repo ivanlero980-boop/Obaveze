@@ -180,12 +180,13 @@ h1,h2,h3,p{margin:0}
 /* Other screens, same visual language */
 .top{
   display:flex;justify-content:space-between;align-items:center;gap:12px;
-  margin:0 -16px 16px;padding:15px 17px 16px;
-  background:#fff;border-bottom:1px solid var(--line);
+  margin:0 -16px 14px;padding:19px 18px 17px;
+  background:linear-gradient(145deg,#008348 0%,#006f39 68%,#006130 100%);
+  color:#fff;border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(0,92,47,.12);
 }
-.top h1{font-size:24px;letter-spacing:-.02em}
-.top .sm{margin-top:3px}
-.top .btn{width:44px;height:44px;padding:0;display:grid;place-items:center}
+.top h1{font-size:25px;letter-spacing:-.025em}
+.top .sm{margin-top:3px;color:rgba(255,255,255,.78)}
+.top .btn{width:42px;height:42px;padding:0;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22)}
 .card{
   background:#fff;border:1px solid #edf0ee;border-radius:16px;
   padding:15px;margin-bottom:10px;box-shadow:var(--shadow-soft);min-width:0;
@@ -193,13 +194,13 @@ h1,h2,h3,p{margin:0}
 .tight{padding:13px}
 .list{display:flex;flex-direction:column;gap:9px}
 .list>.card{margin-bottom:0}
-.taskTitle{font-size:15px;font-weight:750;line-height:1.25;overflow-wrap:anywhere}
+.taskTitle{font-size:15px;font-weight:750;line-height:1.28;overflow-wrap:anywhere}
 .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{
   display:inline-flex;align-items:center;
-  min-height:28px;padding:5px 10px;border-radius:999px;
+  min-height:26px;padding:4px 9px;border-radius:999px;
   background:#f3f5f4;border:1px solid #e2e7e4;
-  color:#68736d;font-size:12px;line-height:1.1;
+  color:#68736d;font-size:11px;line-height:1.1;
 }
 .chip.person{background:var(--green-soft);border-color:#d1e9dc;color:var(--green-deep)}
 .chip.priority.strategic{background:var(--amber-soft);border-color:#f1d69c;color:#976310}
@@ -210,8 +211,25 @@ h1,h2,h3,p{margin:0}
 .btn.pri,.pri{background:var(--green);border-color:var(--green);color:#fff;font-weight:750}
 .btn.danger,.danger{color:var(--red)}
 .btnrow{display:flex;gap:8px}.btnrow .grow{flex:1}
-.tabs{display:flex;gap:7px;overflow:auto;margin:0 0 12px;padding-bottom:2px}
-.tabs .btn{white-space:nowrap}
+.tabs{display:flex;gap:6px;overflow:auto;margin:0 -2px 12px;padding:2px 2px 4px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .btn{white-space:nowrap;border-radius:999px;padding:8px 12px;font-size:13px;color:#68736d;background:#fff}
+.tabs .btn.on{background:var(--green-soft);border-color:#cfe5d8;color:var(--green-deep);font-weight:750}
+.secondaryCard{position:relative;padding:14px 14px 13px 16px;overflow:hidden}
+.secondaryCard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#c4ccc7}
+.secondaryCard.late:before{background:var(--red)}
+.secondaryCard.soon:before{background:var(--amber)}
+.secondaryCard.strategic:before{background:var(--green)}
+.secondaryTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.secondaryDue{font-size:11px;font-weight:750;white-space:nowrap;color:var(--mute);padding-top:1px}
+.secondaryDue.late{color:var(--red)}
+.secondaryDue.soon{color:var(--amber)}
+.secondaryMeta{font-size:12px;color:var(--mute);margin-top:6px;line-height:1.3}
+.projectCard,.noteCard{padding:14px}
+.projectLead,.noteLead{display:flex;align-items:flex-start;gap:12px}
+.secondaryIcon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center}
+.secondaryIcon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.countBadge{display:inline-flex;align-items:center;justify-content:center;min-width:62px;min-height:27px;padding:4px 8px;border-radius:999px;background:#f2f5f3;color:var(--green-deep);font-size:11px;font-weight:750;white-space:nowrap}
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
 .kpi{background:#fff;border:1px solid #edf0ee;border-radius:15px;padding:12px;box-shadow:var(--shadow-soft)}
 .kpi .num{font-size:27px;margin-top:3px}
@@ -455,19 +473,40 @@ function vPregled(){
  $("#view").querySelectorAll("[data-done]").forEach(b=>b.onclick=e=>{e.stopPropagation();const x=S.items.find(z=>z.ID===Number(b.dataset.done));if(!x)return;x.Status="Završeno";save();render()});
  $("#view").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{route=b.dataset.go;render()});
 }
+function actionListCard(x){
+ const d=daysTo(x.Rok);
+ const cls=d<0?"late":d<=7?"soon":x.Prioritet==="Strateško"?"strategic":"";
+ const due=x.Rok?(d<0?`Kasni ${Math.abs(d)} d`:d===0?"Danas":fmtDate(x.Rok)):"Bez roka";
+ const dueCls=d<0?"late":d<=7?"soon":"";
+ const meta=[x.Odgovoran,x.Projekat,x.Status==="Čeka drugog"?"Čeka drugog":""].filter(Boolean).map(esc).join(" · ");
+ return `<div class="card secondaryCard ${cls}" data-item="${x.ID}">
+  <div class="secondaryTop"><div class="taskTitle grow">${esc(x.Zadatak)}</div><div class="secondaryDue ${dueCls}">${esc(due)}</div></div>
+  ${meta?`<div class="secondaryMeta">${meta}</div>`:""}
+  ${x.Prioritet==="Strateško"?`<div class="meta"><span class="chip priority strategic">Strateško</span></div>`:""}
+ </div>`;
+}
 function vAkcije(){
  const a=activeActions();
- $("#view").innerHTML=head("Akcije",`${a.length} otvorenih akcija`)+`<div class="tabs"><button class="btn" data-filter="all">Sve</button><button class="btn" data-filter="Strateško">Strateško</button><button class="btn" data-filter="Čeka drugog">Čeka drugog</button><button class="btn" data-filter="Bez roka">Bez roka</button></div><div class="list" id="tasks">${a.map(taskCard).join("")}</div>`;
- $("#view").querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{let f=b.dataset.filter,arr=activeActions();if(f==="Strateško")arr=arr.filter(x=>x.Prioritet===f);if(f==="Čeka drugog")arr=arr.filter(x=>x.Status===f);if(f==="Bez roka")arr=arr.filter(x=>!x.Rok);$("#tasks").innerHTML=arr.map(taskCard).join("");bindCards()});
+ const draw=arr=>{$("#tasks").innerHTML=arr.map(actionListCard).join("")||`<div class="empty">Nema akcija u ovom prikazu.</div>`;bindCards()};
+ $("#view").innerHTML=head("Akcije",`${a.length} otvorenih akcija`)+`<div class="tabs"><button class="btn on" data-filter="all">Sve</button><button class="btn" data-filter="Strateško">Strateško</button><button class="btn" data-filter="Čeka drugog">Čeka drugog</button><button class="btn" data-filter="Bez roka">Bez roka</button></div><div class="list" id="tasks"></div>`;
+ draw(a);
+ $("#view").querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{
+  $("#view").querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("on",x===b));
+  let f=b.dataset.filter,arr=activeActions();
+  if(f==="Strateško")arr=arr.filter(x=>x.Prioritet===f);
+  if(f==="Čeka drugog")arr=arr.filter(x=>x.Status===f);
+  if(f==="Bez roka")arr=arr.filter(x=>!x.Rok);
+  draw(arr);
+ });
 }
 function vBeleske(){
  const ns=notes().slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
- $("#view").innerHTML=head("Beleške",`${ns.length} sačuvanih`)+`<div class="list">${ns.map(n=>`<div class="card tight" data-note="${n.ID}"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta">${n.Projekat?`<span class="chip">${esc(n.Projekat)}</span>`:""}${n.Sistem?`<span class="chip">${esc(n.Sistem)}</span>`:""}${n.Izvor?`<span class="chip">${esc(n.Izvor)}</span>`:""}</div></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`;
+ $("#view").innerHTML=head("Beleške",`${ns.length} sačuvanih`)+`<div class="list">${ns.map(n=>`<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div>${n["Detalji dogovora"]?`<div class="secondaryMeta">${esc(n["Detalji dogovora"])}</div>`:""}<div class="meta">${n.Projekat?`<span class="chip">${esc(n.Projekat)}</span>`:""}${n.Sistem?`<span class="chip">${esc(n.Sistem)}</span>`:""}${n.Izvor?`<span class="chip">${esc(n.Izvor)}</span>`:""}</div></div></div></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`;
  $("#view").querySelectorAll("[data-note]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.note)));
 }
 function vProjekti(){
  const ps=projects().filter(p=>p.Status!=="Završeno");
- $("#view").innerHTML=head("Projekti",`${ps.length} aktivnih`)+`<div class="list">${ps.map(p=>{const aa=actionsForProject(p);return `<div class="card" data-project="${p.ID}"><div class="row between"><div class="grow"><div class="taskTitle">${esc(p.Projekat||p.Zadatak)}</div><div class="sm mute">${esc(p["Detalji dogovora"]||"")}</div></div><span class="chip">${aa.length} akcija</span></div></div>`}).join("")||`<div class="empty">Nema aktivnih projekata.</div>`}</div>`;
+ $("#view").innerHTML=head("Projekti",`${ps.length} aktivnih`)+`<div class="list">${ps.map(p=>{const aa=actionsForProject(p);return `<div class="card projectCard" data-project="${p.ID}"><div class="projectLead"><div class="secondaryIcon">${ICONS.project}</div><div class="grow"><div class="row between" style="align-items:flex-start"><div class="taskTitle grow">${esc(p.Projekat||p.Zadatak)}</div><span class="countBadge">${aa.length} ${aa.length===1?"akcija":"akcija"}</span></div>${p["Detalji dogovora"]?`<div class="secondaryMeta">${esc(p["Detalji dogovora"])}</div>`:""}${p.Status&&p.Status!=="Aktivan"?`<div class="meta"><span class="chip">${esc(p.Status)}</span></div>`:""}</div></div></div>`}).join("")||`<div class="empty">Nema aktivnih projekata.</div>`}</div>`;
  $("#view").querySelectorAll("[data-project]").forEach(b=>b.onclick=()=>projectDialog(Number(b.dataset.project)));
 }
 function vOsobe(){
