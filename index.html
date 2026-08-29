@@ -154,14 +154,16 @@ h1,h2,h3,p{margin:0}
 }
 .todayRow+.todayRow,.upcomingRow+.upcomingRow{border-top:1px solid var(--line)}
 .todayRow:before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green);
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#c4ccc7;
 }
 .todayRow.soon:before{background:var(--amber)}
 .todayRow.late:before{background:var(--red)}
-.checkBox{
-  width:24px;height:24px;border:1.7px solid #9aa49e;border-radius:6px;
-  background:#fff;
+.checkBox,.pendingCircle{
+  width:24px;height:24px;border:1.7px solid #9aa49e;border-radius:50%;
+  background:#fff;padding:0;
 }
+.pendingCircle{justify-self:end}
+.checkBox:active,.pendingCircle:active{background:#eef2ef}
 .rowTitle{font-size:14px;font-weight:750;line-height:1.22;overflow-wrap:anywhere}
 .rowMeta{font-size:11px;color:var(--mute);margin-top:4px;line-height:1.25}
 .rowDue{font-size:11px;font-weight:700;color:var(--red);white-space:nowrap}
@@ -501,7 +503,7 @@ function vPregled(){
    return `<div class="upcomingRow" data-item="${x.ID}">
     <div class="dateBox"><div class="dateDay">${d}</div><div class="dateMonth">${monthShort(x.Rok)}</div></div>
     <div><div class="rowTitle">${esc(x.Zadatak)}</div><div class="rowMeta">${esc(x.Projekat||x.Izvor||"Akcija")} · Rok: ${esc(fmtDate(x.Rok))}</div></div>
-    <div class="typeIcon">${ICONS.action}</div>
+    <button class="pendingCircle" data-done="${x.ID}" aria-label="Označi kao završeno"></button>
    </div>`;
  }).join(""):`<div class="dashboardEmpty">Nema narednih rokova.</div>`;
 
@@ -1030,7 +1032,15 @@ function resetData(){
 function bindCards(){document.querySelectorAll("[data-item]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.item)))}
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260829-3").then(reg=>reg.update()).catch(()=>{});
+  navigator.serviceWorker.register("sw.js?v=20260829-5").then(reg=>{
+   reg.update();
+   let refreshing=false;
+   navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(refreshing)return;
+    refreshing=true;
+    location.reload();
+   });
+  }).catch(()=>{});
  });
 }
 if(isStandalone()){
