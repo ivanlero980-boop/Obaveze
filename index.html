@@ -312,6 +312,11 @@ nav button.on:after{
 .actionGroupCount{font-size:13px;color:var(--muted);font-weight:650}
 .actionGroupList{margin-top:0}
 .projectLate{border-left:4px solid var(--red)}
+
+.projectActionsTitle{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);align-items:center}
+.projectActionsWrap{margin-top:8px}
+.projectActionGroup{margin-top:13px}
+.projectActionHead{display:flex;justify-content:space-between;align-items:center;padding:0 2px 6px;font-size:13px;font-weight:750;color:var(--muted)}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -709,13 +714,20 @@ function quickAdd(){
 }
 function projectDialog(id){
  const p=S.items.find(x=>x.ID===id);if(!p)return;
- const name=p.Projekat||p.Zadatak,a=projectActions(p);
+ const name=p.Projekat||p.Zadatak,a=projectActions(p).slice().sort(attentionSort);
+ const groups={
+  late:a.filter(x=>daysTo(x.Rok)<0),
+  today:a.filter(x=>x.Rok===today()),
+  week:a.filter(x=>daysTo(x.Rok)>=1&&daysTo(x.Rok)<=7),
+  later:a.filter(x=>daysTo(x.Rok)>7)
+ };
+ const group=(title,arr)=>arr.length?`<div class="projectActionGroup"><div class="projectActionHead"><span>${title}</span><span>${arr.length}</span></div><div class="list">${arr.map(taskCard).join("")}</div></div>`:"";
  openDlg(`<div class="row between"><h2>${esc(name)}</h2><button class="btn" id="pc">×</button></div>
- <div class="meta" style="margin:8px 0 10px">${p.Rok?`<span class="chip date">Rok ${esc(fmtDate(p.Rok))}</span>`:""}${p.Sistem?`<span class="chip">${esc(p.Sistem)}</span>`:""}</div>
- ${p["Detalji dogovora"]?`<div class="sm mute" style="margin:8px 0 12px">${esc(p["Detalji dogovora"])}</div>`:""}
- <div class="btnrow"><button class="btn pri grow" id="pa">+ Akcija</button><button class="btn grow" id="pe">Uredi</button></div>
- <button class="btn" style="width:100%;margin-top:8px" id="pf">Završi projekat</button>
- <div class="list" style="margin-top:12px">${a.map(taskCard).join("")||`<div class="empty">Nema otvorenih akcija.</div>`}</div>`);
+ <div class="meta" style="margin:8px 0 10px">${p.Rok?`<span class="chip date">${daysTo(p.Rok)<0?`Kasni ${Math.abs(daysTo(p.Rok))} d`:`Rok ${esc(fmtDate(p.Rok))}`}</span>`:""}${p.Sistem?`<span class="chip">${esc(p.Sistem)}</span>`:""}</div>
+ ${p["Detalji dogovora"]?`<div class="sm mute" style="margin:8px 0 14px">${esc(p["Detalji dogovora"])}</div>`:""}
+ <div class="row between projectActionsTitle"><div><b>Akcije projekta</b><div class="sm mute">${a.length} otvorenih</div></div><button class="btn pri" id="pa">+ Nova akcija</button></div>
+ <div class="projectActionsWrap">${group("Kasni",groups.late)}${group("Danas",groups.today)}${group("Dospijeva u narednih 7 dana",groups.week)}${group("Kasnije",groups.later)}${!a.length?`<div class="empty">Još nema otvorenih akcija u projektu.</div>`:""}</div>
+ <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="pe">Uredi projekat</button><button class="btn grow" id="pf">Završi projekat</button></div>`);
  $("#pc").onclick=closeDlg;
  $("#pa").onclick=()=>editItem(null,"Akcija",{Projekat:name,ProjectID:p.ID,Oblast:"Poslovno"});
  $("#pe").onclick=()=>editItem(p);
