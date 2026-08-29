@@ -2,310 +2,282 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#12171b"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><title>Obaveze</title>
 <style>
 :root{
-  --bg:#f4f6f5;
-  --panel:#ffffff;
-  --panel2:#f0f3f1;
-  --line:#d9e0dc;
-  --text:#18201c;
-  --mute:#728078;
+  --bg:#f5f7f6;
+  --paper:#ffffff;
+  --paper-soft:#fafbfa;
+  --ink:#17201b;
+  --text:#253029;
+  --mute:#7b8680;
+  --line:#e0e6e2;
   --green:#007a3d;
-  --green-dark:#006532;
-  --green-soft:#e8f3ed;
-  --amber:#d89a2b;
-  --hot:#c95f64;
-  --shadow:0 7px 24px rgba(18,44,30,.08);
-  --r:18px;
+  --green-deep:#006b35;
+  --green-soft:#eaf5ef;
+  --amber:#e09a18;
+  --amber-soft:#fff5df;
+  --red:#d94f55;
+  --red-soft:#fff0f1;
+  --shadow:0 7px 22px rgba(27,54,40,.08);
+  --shadow-soft:0 3px 12px rgba(27,54,40,.06);
+  --radius:18px;
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
 body{
   margin:0;
   background:var(--bg);
-  color:var(--text);
+  color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-button,input,select,textarea{
-  font:inherit;
-  font-size:16px;
-  color:inherit;
-}
+button,input,select,textarea{font:inherit;font-size:16px;color:inherit}
 button{cursor:pointer}
-.app{
-  max-width:720px;
-  margin:auto;
-  padding:0 14px 96px;
-}
-
-/* Corporate header */
-.brandHeader{
-  margin:0 -14px 14px;
-  padding:12px 16px 13px;
-  background:linear-gradient(145deg,var(--green) 0%,var(--green-dark) 100%);
-  color:white;
-  border-radius:0 0 18px 18px;
-  box-shadow:0 5px 18px rgba(0,86,45,.12);
-}
-.brandTop{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-}
-.brand{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  font-weight:850;
-  letter-spacing:.08em;
-  font-size:21px;
-}
-.brandMark{
-  width:31px;height:31px;border:2px solid rgba(255,255,255,.92);
-  border-radius:9px;display:grid;place-items:center;font-size:16px;font-weight:900;
-}
-.brandHello{
-  margin-top:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:12px;
-}
-.brandHello h1{font-size:22px;line-height:1.1;margin:0}
-.brandHello .sub{margin-top:3px;color:rgba(255,255,255,.78);font-size:12px}
-
-/* Header/menu used inside screens */
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  margin:0 0 14px;
-  gap:12px;
-}
-.top h1{font-size:25px;line-height:1.15}
-.top .btn{
-  background:var(--panel);
-  border:1px solid var(--line);
-  color:var(--green-dark);
-  box-shadow:none;
-}
-
+.app{max-width:720px;margin:auto;padding:0 16px 110px}
 h1,h2,h3,p{margin:0}
-.mute{color:var(--mute)}
-.sm{font-size:13px}
-.xs{
-  font-size:11px;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:var(--mute);
-  font-weight:700;
-}
-.row{display:flex;gap:9px;align-items:center;min-width:0}
+.row{display:flex;align-items:center;gap:10px;min-width:0}
 .between{justify-content:space-between}
 .grow{flex:1;min-width:0}
-.num{font-size:23px;font-weight:800}
-.green{color:var(--green)}
+.mute{color:var(--mute)}
+.sm{font-size:13px}
+.xs{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);font-weight:800}
+.num{font-weight:800;font-variant-numeric:tabular-nums}
+.hot{color:var(--red)}
 .amber{color:var(--amber)}
-.hot{color:var(--hot)}
+.green{color:var(--green)}
 
-.card{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-radius:var(--r);
-  padding:15px;
-  margin-bottom:10px;
-  min-width:0;
-  box-shadow:var(--shadow);
+/* ===== Exact approved dashboard direction ===== */
+.dashboardHero{
+  margin:0 -16px 18px;
+  padding:14px 18px 16px;
+  min-height:0;
+  background:linear-gradient(145deg,#008348 0%,#006f39 56%,#006130 100%);
+  color:#fff;
+  border-radius:0 0 20px 20px;
+  box-shadow:0 8px 26px rgba(0,92,47,.18);
 }
-.tight{padding:12px 13px}
+.heroTop{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.logoPlate{
+  width:150px;height:50px;
+  background:#fff;
+  border-radius:9px;
+  padding:5px 8px;
+  display:flex;align-items:center;
+  box-shadow:0 2px 9px rgba(0,0,0,.08);
+}
+.logoPlate img{display:block;width:100%;height:100%;object-fit:contain}
+.menuCircle{
+  width:42px;height:42px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.10);
+  color:#fff;display:grid;place-items:center;
+  font-size:22px;line-height:1;
+}
+.heroBody{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px;
+  gap:12px;
+  align-items:center;
+  margin-top:14px;
+}
+.greeting{font-size:22px;line-height:1.08;font-weight:500;letter-spacing:-.02em}
+.greeting b{font-weight:800}
+.heroSub{margin-top:5px;font-size:13px;color:rgba(255,255,255,.84)}
+.priorityCard{
+  min-height:78px;
+  border-radius:13px;
+  padding:9px 7px;
+  background:rgba(255,255,255,.11);
+  border:1px solid rgba(255,255,255,.10);
+  text-align:center;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.priorityLabel{font-size:10px;color:rgba(255,255,255,.9)}
+.priorityLabel .star{color:#ffc43d;margin-right:4px}
+.priorityNumber{font-size:27px;font-weight:800;line-height:1;margin:4px 0 2px}
+.priorityFoot{font-size:10px;color:rgba(255,255,255,.82)}
+
+.dashboardKpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:15px;
+}
+.summaryTile{
+  min-width:0;
+  min-height:94px;
+  background:#fff;
+  border:1px solid #edf0ee;
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  padding:9px 5px 8px;
+  text-align:center;
+  display:flex;flex-direction:column;align-items:center;
+}
+.summaryIcon{width:24px;height:24px;color:var(--green);margin-bottom:4px}
+.summaryIcon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.summaryTitle{font-size:10px;line-height:1.1;color:#1f2823;min-height:22px;display:flex;align-items:center;justify-content:center}
+.summaryValue{font-size:24px;line-height:1;font-weight:800;color:var(--green-deep);margin:4px 0 3px}
+.summaryFoot{font-size:9px;color:var(--green-deep);line-height:1.1}
+.summaryTile.due .summaryFoot{color:var(--amber)}
+.summaryTile.zero{opacity:.53}
+.summaryTile.zero .summaryValue{color:#8f9993}
+
+.sectionHead{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;margin:15px 2px 8px;
+}
+.sectionHead h2{font-size:17px;letter-spacing:-.01em}
+.sectionLink{
+  color:var(--green-deep);font-size:13px;font-weight:700;
+  border:0;background:none;padding:4px 0;
+}
+.sectionCard{
+  background:#fff;
+  border:1px solid #edf0ee;
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.todayRow,.upcomingRow{
+  position:relative;
+  display:grid;
+  align-items:center;
+  min-width:0;
+}
+.todayRow{
+  grid-template-columns:34px minmax(0,1fr) auto 24px;
+  gap:10px;
+  padding:14px 15px 14px 17px;
+  min-height:76px;
+}
+.todayRow+.todayRow,.upcomingRow+.upcomingRow{border-top:1px solid var(--line)}
+.todayRow:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green);
+}
+.todayRow.soon:before{background:var(--amber)}
+.todayRow.late:before{background:var(--red)}
+.checkBox{
+  width:26px;height:26px;border:1.7px solid #9aa49e;border-radius:6px;
+  background:#fff;
+}
+.rowTitle{font-size:15px;font-weight:750;line-height:1.22;overflow-wrap:anywhere}
+.rowMeta{font-size:12px;color:var(--mute);margin-top:4px;line-height:1.25}
+.rowDue{font-size:12px;font-weight:700;color:var(--red);white-space:nowrap}
+.starBtn{font-size:21px;color:#858f89;border:0;background:transparent;padding:0}
+.upcomingRow{
+  grid-template-columns:54px minmax(0,1fr) 27px;
+  gap:12px;padding:13px 15px;min-height:72px;
+}
+.dateBox{border-right:1px solid var(--line);padding-right:10px;text-align:center}
+.dateDay{font-size:23px;line-height:1;font-weight:800;color:var(--green-deep)}
+.dateMonth{font-size:10px;text-transform:uppercase;color:var(--mute);margin-top:4px;font-weight:700}
+.typeIcon{width:24px;height:24px;color:var(--green);display:grid;place-items:center}
+.typeIcon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dashboardEmpty{padding:20px;text-align:center;color:var(--mute);font-size:13px}
+
+/* Other screens, same visual language */
+.top{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin:0 -16px 16px;padding:15px 17px 16px;
+  background:#fff;border-bottom:1px solid var(--line);
+}
+.top h1{font-size:24px;letter-spacing:-.02em}
+.top .sm{margin-top:3px}
+.top .btn{width:44px;height:44px;padding:0;display:grid;place-items:center}
+.card{
+  background:#fff;border:1px solid #edf0ee;border-radius:16px;
+  padding:15px;margin-bottom:10px;box-shadow:var(--shadow-soft);min-width:0;
+}
+.tight{padding:13px}
 .list{display:flex;flex-direction:column;gap:9px}
 .list>.card{margin-bottom:0}
-.taskTitle{font-weight:740;overflow-wrap:anywhere}
+.taskTitle{font-size:15px;font-weight:750;line-height:1.25;overflow-wrap:anywhere}
 .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chip{
-  display:inline-flex;
-  align-items:center;
-  padding:5px 9px;
-  border-radius:999px;
-  background:var(--green-soft);
-  color:var(--green-dark);
-  font-size:12px;
-  border:1px solid #d2e7da;
-  line-height:1.15;
+  display:inline-flex;align-items:center;
+  min-height:28px;padding:5px 10px;border-radius:999px;
+  background:#f3f5f4;border:1px solid #e2e7e4;
+  color:#68736d;font-size:12px;line-height:1.1;
 }
-
-.kpis{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:9px;
-  margin-bottom:16px;
-}
-.kpi{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-radius:16px;
-  padding:13px;
-  box-shadow:var(--shadow);
-}
-.kpi .num{margin-top:3px;font-size:27px}
-
+.chip.person{background:var(--green-soft);border-color:#d1e9dc;color:var(--green-deep)}
+.chip.priority.strategic{background:var(--amber-soft);border-color:#f1d69c;color:#976310}
+.chip.date{background:#f6f7f6;color:#6b756f}
 .btn{
-  border:1px solid var(--line);
-  background:var(--panel);
-  border-radius:12px;
-  padding:10px 12px;
+  border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;
 }
-.btn.pri,.pri{
-  background:var(--green);
-  color:#fff;
-  border-color:var(--green);
-  font-weight:750;
-}
-.btn.danger,.danger{color:var(--hot)}
-.btnrow{display:flex;gap:8px}
-.btnrow .grow{flex:1}
-
-.tabs{
-  display:flex;
-  gap:7px;
-  overflow:auto;
-  margin-bottom:12px;
-  padding-bottom:2px;
-}
-.tabs .btn{
-  white-space:nowrap;
-  background:var(--panel);
-}
-.tabs .btn:active{background:var(--green-soft)}
-
-.f{display:block;margin-bottom:11px}
-.f span{display:block;margin-bottom:5px}
+.btn.pri,.pri{background:var(--green);border-color:var(--green);color:#fff;font-weight:750}
+.btn.danger,.danger{color:var(--red)}
+.btnrow{display:flex;gap:8px}.btnrow .grow{flex:1}
+.tabs{display:flex;gap:7px;overflow:auto;margin:0 0 12px;padding-bottom:2px}
+.tabs .btn{white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.kpi{background:#fff;border:1px solid #edf0ee;border-radius:15px;padding:12px;box-shadow:var(--shadow-soft)}
+.kpi .num{font-size:27px;margin-top:3px}
+.kpi.zero{opacity:.55}
+.f{display:block;margin-bottom:11px}.f span{display:block;margin-bottom:5px}
 input,select,textarea{
-  width:100%;
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:11px;
-  padding:11px;
-  outline:none;
+  width:100%;background:#fff;border:1px solid #dce3df;border-radius:11px;padding:11px;outline:none;
 }
-input:focus,select:focus,textarea:focus{
-  border-color:var(--green);
-  box-shadow:0 0 0 3px rgba(0,122,61,.10);
-}
-textarea{min-height:95px;resize:vertical}
-
-dialog{
-  border:0;
-  background:transparent;
-  padding:0;
-  width:min(680px,calc(100% - 20px));
-  color:var(--text);
-}
-dialog::backdrop{background:rgba(9,25,17,.40);backdrop-filter:blur(2px)}
-.sheet{
-  background:var(--bg);
-  border:1px solid var(--line);
-  border-radius:22px;
-  padding:16px;
-  max-height:88vh;
-  overflow:auto;
-  box-shadow:0 18px 60px rgba(15,40,25,.20);
-}
-
-.empty{text-align:center;color:var(--mute);padding:30px 8px}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,122,61,.10)}
+textarea{min-height:96px;resize:vertical}
+.empty{padding:28px 8px;text-align:center;color:var(--mute)}
 hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 
-/* Floating add */
-.fab{
-  position:fixed;
-  right:max(18px,calc((100vw - 720px)/2 + 18px));
-  bottom:83px;
-  width:58px;height:58px;
-  border-radius:50%;
-  border:4px solid var(--bg);
-  background:var(--green);
-  font-size:30px;
-  color:white;
-  box-shadow:0 8px 24px rgba(0,110,55,.28);
-  z-index:10;
+/* Dialogs */
+dialog{border:0;background:transparent;padding:0;width:min(680px,calc(100% - 20px));color:var(--ink)}
+dialog::backdrop{background:rgba(12,24,17,.38);backdrop-filter:blur(2px)}
+.sheet{
+  background:var(--bg);border:1px solid var(--line);border-radius:21px;
+  padding:16px;max-height:88vh;overflow:auto;box-shadow:0 18px 55px rgba(14,34,22,.19);
 }
 
-/* Core bottom navigation */
+/* FAB */
+.fab{
+  position:fixed;right:max(20px,calc((100vw - 720px)/2 + 20px));bottom:82px;
+  width:60px;height:60px;border-radius:50%;border:5px solid var(--bg);
+  background:linear-gradient(145deg,#00864a,#006f39);color:#fff;font-size:31px;
+  box-shadow:0 9px 28px rgba(0,111,57,.28);z-index:20;
+}
+
+/* Bottom navigation */
 nav{
-  position:fixed;
-  bottom:0;left:0;right:0;
-  background:rgba(255,255,255,.96);
-  border-top:1px solid var(--line);
-  backdrop-filter:blur(16px);
-  display:flex;
-  justify-content:center;
-  padding-bottom:env(safe-area-inset-bottom);
-  z-index:9;
+  position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);
+  border-top:1px solid var(--line);backdrop-filter:blur(16px);
+  display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);z-index:19;
 }
-nav .inner{
-  width:min(720px,100%);
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-}
+nav .inner{width:min(720px,100%);display:grid;grid-template-columns:repeat(4,1fr)}
 nav button{
-  background:none;
-  border:0;
-  color:#7d8882;
-  padding:13px 3px 12px;
-  font-size:11px;
-  font-weight:650;
+  min-height:72px;background:none;border:0;color:#7f8983;padding:9px 2px 7px;
+  font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   position:relative;
 }
-nav button.on{color:var(--green-dark)}
+.navIcon{width:25px;height:25px}
+.navIcon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--green-deep)}
 nav button.on:after{
-  content:"";
-  position:absolute;
-  left:28%;right:28%;bottom:5px;height:3px;
-  background:var(--green);
-  border-radius:2px;
+  content:"";position:absolute;bottom:4px;left:29%;right:29%;height:3px;border-radius:3px;background:var(--green);
 }
 
-/* Long labels and mobile safety */
+/* Safety */
 .card,.row,.grow,.taskTitle,label,summary{min-width:0}
 .card b,.card .sm,.card .xs,.taskTitle,label,summary{overflow-wrap:anywhere}
-@media(min-width:560px){
-  .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:380px){
+  .dashboardHero{padding-left:16px;padding-right:16px}
+  .logoPlate{width:138px;height:46px}
+  .heroBody{grid-template-columns:minmax(0,1fr) 86px}
+  .dashboardKpis{gap:6px}
+  .summaryTile{padding-left:4px;padding-right:4px}
+  .summaryTitle{font-size:11px}
 }
-
-.kpi.zero .num{color:#aeb8b2!important;font-weight:700}
-.kpi.zero .xs{color:#9ba69f}
-.chip.person{
-  background:#edf6f1;
-  color:var(--green-dark);
-  border-color:#d6eadf;
-}
-.chip.priority{
-  background:#f1f3f2;
-  color:#66736c;
-  border-color:#dfe4e1;
-}
-.chip.priority.strategic{
-  background:#fff4de;
-  color:#9a6812;
-  border-color:#f0d69d;
-}
-.chip.date{
-  background:#f7f8f7;
-  color:#5f6b64;
-  border-color:#e2e6e3;
-}
-.card{
-  border-color:#e4e8e5;
-  box-shadow:0 5px 18px rgba(20,45,31,.09);
-}
-
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
-<button data-nav="pregled">Pregled</button><button data-nav="akcije">Akcije</button><button data-nav="projekti">Projekti</button><button data-nav="beleske">Beleške</button>
+<button data-nav="pregled"><span class="navIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>Pregled</span></button>
+<button data-nav="akcije"><span class="navIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg></span><span>Akcije</span></button>
+<button data-nav="projekti"><span class="navIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h6l1.8 2h9.2v9.5a2 2 0 0 1-2 2h-15z"/><path d="M3.5 7.5V5a2 2 0 0 1 2-2h4l1.8 2h7.2a2 2 0 0 1 2 2v2.5"/></svg></span><span>Projekti</span></button>
+<button data-nav="beleske"><span class="navIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M14.5 3.5V7h3.5M8 11h7M8 15h7"/></svg></span><span>Beleške</span></button>
 </div></nav><dialog id="dlg"><div class="sheet" id="dlgBody"></div></dialog>
 <script>
 const KEY="obaveze_app_v1";
@@ -325,31 +297,65 @@ function norm(){
   x.ID=Number(x.ID)||++S.lastId; S.lastId=Math.max(S.lastId,x.ID);
   if(x.Tip==="Akcija"){if(x.Status==="Novo"||x.Status==="U toku")x.Status="Otvoreno";if(x.Status==="Čeka")x.Status="Čeka drugog"}
  });
+ S.items.filter(x=>x.Tip==="Projekat").forEach(x=>{if(!x.Status)x.Status="Aktivan"});
+ if(!Array.isArray(S.weeklyReviews))S.weeklyReviews=[];
  S.people=[...new Set(S.items.map(x=>x.Odgovoran).filter(Boolean))].sort();
  save();
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+
+function daysSince(d){
+ if(!d)return 99999;
+ return Math.floor((new Date(today()+"T00:00:00")-new Date(d+"T00:00:00"))/86400000);
+}
+function backupDue(){return !S._lastBackup || daysSince(S._lastBackup)>=14}
+function reviewHistoryFor(id){
+ return (S.weeklyReviews||[]).flatMap(r=>(r.items||[]).filter(x=>x.id===id));
+}
+function unchangedReviewStreak(id){
+ const h=reviewHistoryFor(id).slice().reverse();
+ let n=0;
+ for(const x of h){if(x.action==="keep")n++;else break}
+ return n;
+}
+
 function activeActions(){return S.items.filter(x=>x.Tip==="Akcija"&&x.Status!=="Završeno")}
-function projects(){return S.items.filter(x=>x.Tip==="Projekat")}
+function projects(){return S.items.filter(x=>x.Tip==="Projekat"&&x.Status!=="Završen")}
 function notes(){return S.items.filter(x=>x.Tip==="Beleška")}
 function projectName(x){return x.Projekat||""}
 function daysTo(d){if(!d)return 99999;return Math.ceil((new Date(d+"T00:00:00")-new Date(today()+"T00:00:00"))/86400000)}
+function greeting(){
+ const h=new Date().getHours();
+ return h<11?"Dobro jutro":h<18?"Dobar dan":"Dobro veče";
+}
+function monthShort(d){
+ if(!d)return "";
+ const m=["JAN","FEB","MAR","APR","MAJ","JUN","JUL","AVG","SEP","OKT","NOV","DEC"];
+ const dt=new Date(d+"T00:00:00"); return m[dt.getMonth()];
+}
+const ICONS={
+ action:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>`,
+ project:`<svg viewBox="0 0 24 24"><path d="M3.5 7.5h6l1.8 2h9.2v9.5a2 2 0 0 1-2 2h-15z"/><path d="M3.5 7.5V5a2 2 0 0 1 2-2h4l1.8 2h7.2a2 2 0 0 1 2 2v2.5"/></svg>`,
+ note:`<svg viewBox="0 0 24 24"><path d="M6 3.5h9l3 3V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M14.5 3.5V7h3.5M8 11h7M8 15h7"/></svg>`,
+ calendar:`<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3v5M16 3v5M4 10h16"/></svg>`
+};
 function attentionSort(a,b){
  const score=x=>{let s=0,d=daysTo(x.Rok);if(d<0)s+=1000;if(x.Prioritet==="Strateško")s+=500;if(d>=0&&d<=7)s+=300;if(x.Status==="Čeka drugog")s+=100;if(!x.Rok)s+=20;return -s};
  return score(a)-score(b);
 }
 function taskCard(x){
  const d=daysTo(x.Rok);
- const stripe=d<0?"var(--hot)":d<=7?"var(--amber)":"#b9c2bc";
+ const stripe=d<0?"var(--red)":d<=7?"var(--amber)":"#c0c8c3";
  const priClass=x.Prioritet==="Strateško"?"priority strategic":"priority";
  return `<div class="card tight" data-item="${x.ID}" style="border-left:4px solid ${stripe}">
-   <div class="taskTitle">${esc(x.Zadatak)}</div>
-   <div class="meta">
-     ${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}
-     ${x.Prioritet?`<span class="chip ${priClass}">${esc(x.Prioritet)}</span>`:""}
-     ${x.Projekat?`<span class="chip">${esc(x.Projekat)}</span>`:""}
-     ${x.Rok?`<span class="chip date">${esc(fmtDate(x.Rok))}</span>`:""}
-   </div>
+  <div class="taskTitle">${esc(x.Zadatak)}</div>
+  <div class="meta">
+   ${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}
+   ${x.Prioritet?`<span class="chip ${priClass}">${esc(x.Prioritet)}</span>`:""}
+   ${x.Projekat?`<span class="chip">${esc(x.Projekat)}</span>`:""}
+   ${x.Rok?`<span class="chip date">${esc(fmtDate(x.Rok))}</span>`:""}
+   ${unchangedReviewStreak(x.ID)>=3?`<span class="chip priority strategic">${unchangedReviewStreak(x.ID)} pregleda bez promjene</span>`:""}
+  </div>
  </div>`;
 }
 let route="pregled";
@@ -358,23 +364,65 @@ function render(){
  ({pregled:vPregled,akcije:vAkcije,projekti:vProjekti,beleske:vBeleske}[route]||vPregled)();
  bindCards(); bindMenu();
 }
-function head(title,sub=""){return `<div class="top"><div><h1>${esc(title)}</h1>${sub?`<div class="sm mute">${esc(sub)}</div>`:""}</div><button class="btn" id="menuBtn" aria-label="Meni">☰</button></div>`}
+function head(title,sub=""){
+ return `<div class="top"><div><h1>${esc(title)}</h1>${sub?`<div class="sm mute">${esc(sub)}</div>`:""}</div><button class="btn" id="menuBtn" aria-label="Meni">☰</button></div>`;
+}
 function vPregled(){
- const a=activeActions(), late=a.filter(x=>daysTo(x.Rok)<0), soon=a.filter(x=>daysTo(x.Rok)>=0&&daysTo(x.Rok)<=7), wait=a.filter(x=>x.Status==="Čeka drugog"), nodue=a.filter(x=>!x.Rok);
- $("#view").innerHTML=`<section class="brandHeader">
- <div class="brandTop">
-   <div>
-     <div class="brand"><span class="brandMark">G</span><span>GRAWE</span></div>
-     <div class="brandHello"><div><h1>Ivan</h1><div class="sub">Evo šta trenutno traži pažnju.</div></div></div>
-   </div>
-   <button class="btn" id="menuBtn" aria-label="Meni" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:white">☰</button>
+ const actions=activeActions();
+ const ps=projects();
+ const ns=notes();
+ const dueToday=actions.filter(x=>x.Rok===today());
+ const strategic=actions.filter(x=>x.Prioritet==="Strateško");
+ const upcoming=actions.filter(x=>x.Rok&&daysTo(x.Rok)>0).sort((a,b)=>a.Rok.localeCompare(b.Rok)).slice(0,5);
+ const todayRows=dueToday.slice().sort(attentionSort);
+
+ const tile=(icon,title,value,foot,extra="")=>`<div class="summaryTile ${value===0?"zero":""} ${extra}">
+   <div class="summaryIcon">${icon}</div><div class="summaryTitle">${title}</div>
+   <div class="summaryValue">${value}</div><div class="summaryFoot">${foot}</div></div>`;
+
+ const todayHTML=todayRows.length?todayRows.map(x=>{
+   const d=daysTo(x.Rok),cls=d<0?"late":d<=1?"soon":"";
+   return `<div class="todayRow ${cls}" data-item="${x.ID}">
+     <div class="checkBox"></div>
+     <div><div class="rowTitle">${esc(x.Zadatak)}</div><div class="rowMeta">${esc(x.Izvor||x.Projekat||x.Sistem||"Akcija")}${x.Prioritet?` · ${esc(x.Prioritet)}`:""}</div></div>
+     <div class="rowDue">Danas</div><button class="starBtn" aria-label="Istakni">☆</button>
+   </div>`;
+ }).join(""):`<div class="dashboardEmpty">Nema akcija sa rokom danas.</div>`;
+
+ const upcomingHTML=upcoming.length?upcoming.map(x=>{
+   const [y,m,d]=x.Rok.split("-");
+   return `<div class="upcomingRow" data-item="${x.ID}">
+    <div class="dateBox"><div class="dateDay">${d}</div><div class="dateMonth">${monthShort(x.Rok)}</div></div>
+    <div><div class="rowTitle">${esc(x.Zadatak)}</div><div class="rowMeta">${esc(x.Projekat||x.Izvor||"Akcija")} · Rok: ${esc(fmtDate(x.Rok))}</div></div>
+    <div class="typeIcon">${ICONS.action}</div>
+   </div>`;
+ }).join(""):`<div class="dashboardEmpty">Nema narednih rokova.</div>`;
+
+ $("#view").innerHTML=`<section class="dashboardHero">
+  <div class="heroTop">
+   <div class="logoPlate"><img src="https://www.grawe.at/fileadmin/shared/Logos/Logo_GRAWE_2021_RGB.jpg" alt="GRAWE"></div>
+   <button class="menuCircle" id="menuBtn" aria-label="Meni">☰</button>
+  </div>
+  <div class="heroBody">
+   <div><div class="greeting">${greeting()}, <b>Ivan</b></div><div class="heroSub">Evo šta traži pažnju danas.</div></div>
+   <div class="priorityCard"><div class="priorityLabel"><span class="star">☆</span>Prioriteti</div><div class="priorityNumber">${strategic.length}</div><div class="priorityFoot">strateških</div></div>
+  </div>
+ </section>
+ <div class="dashboardKpis">
+  ${tile(ICONS.action,"Akcije",actions.length,"otvorenih")}
+  ${tile(ICONS.project,"Projekti",ps.length,"aktivnih")}
+  ${tile(ICONS.note,"Beleške",ns.length,"sačuvanih")}
+  ${tile(ICONS.calendar,"Rokovi danas",dueToday.length,dueToday.length===1?"stavka":"stavki","due")}
  </div>
- </section><div class="kpis">
- <div class="kpi ${late.length===0?"zero":""}"><div class="xs">Kasni</div><div class="num hot">${late.length}</div></div>
- <div class="kpi ${soon.length===0?"zero":""}"><div class="xs">Uskoro</div><div class="num amber">${soon.length}</div></div>
- <div class="kpi ${wait.length===0?"zero":""}"><div class="xs">Čeka drugog</div><div class="num">${wait.length}</div></div>
- <div class="kpi ${nodue.length===0?"zero":""}"><div class="xs">Bez roka</div><div class="num">${nodue.length}</div></div></div>
- <div class="xs" style="margin-bottom:8px">Za pažnju</div><div class="list">${a.slice().sort(attentionSort).slice(0,10).map(taskCard).join("")||`<div class="empty">Nema otvorenih akcija.</div>`}</div>`;
+
+ <div class="sectionHead"><h2>Danas</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
+ <div class="sectionCard">${todayHTML}</div>
+
+ <div class="sectionHead"><h2>Naredno</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
+ <div class="sectionCard">${upcomingHTML}</div>`;
+
+ $("#view").querySelectorAll("[data-item]").forEach(el=>el.onclick=()=>itemDialog(Number(el.dataset.item)));
+ $("#view").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{route=b.dataset.go;render()});
 }
 function vAkcije(){
  const a=activeActions();
@@ -383,7 +431,7 @@ function vAkcije(){
 }
 function vBeleske(){
  const ns=notes().slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
- $("#view").innerHTML=head("Beleške",`${ns.length} beleški`)+`<div class="list">${ns.map(n=>`<div class="card tight" data-note="${n.ID}"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta">${n.Projekat?`<span class="chip">${esc(n.Projekat)}</span>`:""}${n.Sistem?`<span class="chip">${esc(n.Sistem)}</span>`:""}${n.Izvor?`<span class="chip">${esc(n.Izvor)}</span>`:""}</div></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`;
+ $("#view").innerHTML=head("Beleške",`${ns.length} sačuvanih`)+`<div class="list">${ns.map(n=>`<div class="card tight" data-note="${n.ID}"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta">${n.Projekat?`<span class="chip">${esc(n.Projekat)}</span>`:""}${n.Sistem?`<span class="chip">${esc(n.Sistem)}</span>`:""}${n.Izvor?`<span class="chip">${esc(n.Izvor)}</span>`:""}</div></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`;
  $("#view").querySelectorAll("[data-note]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.note)));
 }
 function vProjekti(){
@@ -402,12 +450,15 @@ function openMenu(){
  openDlg(`<div class="row between"><h2>Meni</h2><button class="btn" id="mc">×</button></div><div class="list" style="margin-top:12px">
  <button class="card tight" id="mPeople" style="text-align:left;color:inherit"><b>Osobe / 1-na-1</b><div class="sm mute">Otvorene stvari po odgovornom</div></button>
  <button class="card tight" id="mWeekly" style="text-align:left;color:inherit"><b>Nedeljni pregled</b><div class="sm mute">Prođi kroz otvorene akcije</div></button>
+ <button class="card tight" id="mReviewHistory" style="text-align:left;color:inherit"><b>Istorija pregleda</b><div class="sm mute">${(S.weeklyReviews||[]).length} pregleda</div></button>
  <button class="card tight" id="mArchive" style="text-align:left;color:inherit"><b>Arhiva</b></button>
+ ${backupDue()?`<div class="card tight" style="border-left:4px solid var(--amber)"><b>Vrijeme je za backup</b><div class="sm mute">${S._lastBackup?`Prošlo je ${daysSince(S._lastBackup)} dana od posljednjeg izvoza.`:"Još nije napravljena sigurnosna kopija."}</div></div>`:""}
  <button class="card tight" id="mExport" style="text-align:left;color:inherit"><b>Backup</b><div class="sm mute">Izvezi podatke kao JSON</div></button>
  <button class="card tight" id="mReset" style="text-align:left;color:inherit"><b class="hot">Resetuj sve podatke</b></button></div>`);
  $("#mc").onclick=closeDlg;
  $("#mPeople").onclick=()=>{closeDlg();peopleDialog()};
  $("#mWeekly").onclick=weeklyReview;
+ $("#mReviewHistory").onclick=reviewHistoryDialog;
  $("#mArchive").onclick=archiveDialog;
  $("#mExport").onclick=exportData;
  $("#mReset").onclick=resetData;
@@ -423,7 +474,7 @@ function vVise(){
  $("#view").innerHTML=head("Više")+`<div class="list">
  <button class="card tight" id="weekly" style="text-align:left;color:inherit"><b>Nedeljni pregled</b><div class="sm mute">Prođi kroz sve otvorene akcije</div></button>
  <button class="card tight" id="notes" style="text-align:left;color:inherit"><b>Beleške</b><div class="sm mute">${notes().length} beleški</div></button>
- <button class="card tight" id="archive" style="text-align:left;color:inherit"><b>Arhiva</b><div class="sm mute">${S.items.filter(x=>x.Status==="Završeno").length} završenih stavki</div></button>
+ <button class="card tight" id="archive" style="text-align:left;color:inherit"><b>Arhiva</b><div class="sm mute">${S.items.filter(x=>x.Status==="Završeno"||x.Status==="Završen").length} završenih stavki</div></button>
  <button class="card tight" id="export" style="text-align:left;color:inherit"><b>Backup</b><div class="sm mute">Izvezi podatke kao JSON</div></button>
  <button class="card tight" id="reset" style="text-align:left;color:inherit"><b class="hot">Resetuj sve podatke</b><div class="sm mute">Trajno briše lokalne podatke ove aplikacije</div></button></div>`;
  $("#weekly").onclick=weeklyReview;$("#notes").onclick=notesDialog;$("#archive").onclick=archiveDialog;$("#export").onclick=exportData;$("#reset").onclick=resetData;
@@ -446,6 +497,7 @@ function editItem(x=null,type="Akcija",preset={}){
  openDlg(`<h2>${isNew?"Novo":"Uredi"} · ${esc(x.Tip)}</h2>
  <label class="f"><span class="sm mute">${x.Tip==="Projekat"?"Naziv projekta":x.Tip==="Beleška"?"Beleška":"Šta treba uraditi?"}</span><textarea id="eTask">${esc(x.Tip==="Projekat"?(x.Projekat||x.Zadatak):x.Zadatak||"")}</textarea></label>
  ${x.Tip==="Akcija"?`<div class="row"><label class="f grow"><span class="sm mute">Odgovoran</span><input id="eOwner" value="${esc(x.Odgovoran||"Ivan")}"></label><label class="f grow"><span class="sm mute">Rok</span><input type="date" id="eDue" value="${esc(x.Rok||"")}"></label></div>`:""}
+ ${x.Tip==="Projekat"?`<label class="f"><span class="sm mute">Status projekta</span><select id="eProjectStatus">${["Aktivan","Na čekanju","Završen"].map(v=>`<option ${x.Status===v?"selected":""}>${v}</option>`).join("")}</select></label>`:""}
  <details><summary class="btn">+ Više detalja</summary><div style="margin-top:10px">
  ${x.Tip!=="Projekat"?`<label class="f"><span class="sm mute">Projekat</span><input id="eProject" value="${esc(x.Projekat||"")}"></label>`:""}
  ${x.Tip!=="Beleška"?`<div class="row"><label class="f grow"><span class="sm mute">Prioritet</span><select id="ePriority">${["Strateško","Operativno","Sitno"].map(v=>`<option ${x.Prioritet===v?"selected":""}>${v}</option>`).join("")}</select></label><label class="f grow"><span class="sm mute">Sistem</span><select id="eSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v}</option>`).join("")}</select></label></div>`:`<label class="f"><span class="sm mute">Sistem</span><select id="eSystem">${["","Osiguranje","Tehnički","Zajedničko"].map(v=>`<option ${x.Sistem===v?"selected":""}>${v||"—"}</option>`).join("")}</select></label>`}
@@ -458,6 +510,7 @@ function editItem(x=null,type="Akcija",preset={}){
   if(isNew){x.ID=++S.lastId;S.items.push(x)}
   if(x.Tip==="Projekat"){x.Projekat=task;x.Zadatak=task}else x.Zadatak=task;
   if(x.Tip==="Akcija"){x.Odgovoran=$("#eOwner").value.trim();x.Rok=$("#eDue").value;x.Status=x.Status||"Otvoreno"}
+  if(x.Tip==="Projekat"){x.Status=$("#eProjectStatus")?.value||x.Status||"Aktivan"}
   x.Projekat=$("#eProject")?.value.trim()||x.Projekat||"";x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=$("#eSystem")?.value||x.Sistem||"";
   x.Izvor=$("#eSource")?.value.trim()||"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena=$("#eNote")?.value||x.Napomena||"";
   save();norm();closeDlg();
@@ -473,15 +526,55 @@ function quickAdd(){
 function projectDialog(id){const p=S.items.find(x=>x.ID===id),name=p.Projekat||p.Zadatak,a=activeActions().filter(x=>x.Projekat===name);openDlg(`<div class="row between"><h2>${esc(name)}</h2><button class="btn" id="pc">×</button></div><div class="sm mute" style="margin:8px 0 12px">${esc(p["Detalji dogovora"]||"")}</div><button class="btn pri" id="pa">+ Akcija</button><div class="list" style="margin-top:12px">${a.map(taskCard).join("")||`<div class="empty">Nema otvorenih akcija.</div>`}</div>`);$("#pc").onclick=closeDlg;$("#pa").onclick=()=>editItem(null,"Akcija",{Projekat:name});bindCards()}
 function personDialog(name){const a=activeActions().filter(x=>x.Odgovoran===name);openDlg(`<div class="row between"><h2>${esc(name)}</h2><button class="btn" id="oc">×</button></div><div class="sm mute" style="margin:8px 0 12px">${a.length} otvorenih stavki</div><button class="btn pri" id="oa">+ Akcija</button><div class="list" style="margin-top:12px">${a.map(taskCard).join("")||`<div class="empty">Nema otvorenih akcija.</div>`}</div>`);$("#oc").onclick=closeDlg;$("#oa").onclick=()=>editItem(null,"Akcija",{Odgovoran:name});bindCards()}
 function weeklyReview(){
- const a=activeActions().slice().sort(attentionSort);let i=0;
- const show=()=>{if(i>=a.length){S.weeklyReviews.push(today());save();openDlg(`<h2>Pregled završen</h2><p class="mute" style="margin:10px 0">Pregledano ${a.length} otvorenih akcija.</p><button class="btn pri" id="wrDone">Zatvori</button>`);$("#wrDone").onclick=()=>{closeDlg();render()};return}
- const x=a[i];openDlg(`<div class="xs">Nedeljni pregled · ${i+1}/${a.length}</div><h2 style="margin-top:7px">${esc(x.Zadatak)}</h2><div class="meta">${x.Projekat?`<span class="chip">${esc(x.Projekat)}</span>`:""}${x.Odgovoran?`<span class="chip">${esc(x.Odgovoran)}</span>`:""}${x.Rok?`<span class="chip">${esc(x.Rok)}</span>`:""}</div><div class="btnrow" style="margin-top:16px"><button class="btn grow" id="keep">Ostavi</button><button class="btn grow" id="wait">Čeka drugog</button></div><div class="btnrow" style="margin-top:8px"><button class="btn grow" id="date">Promeni rok</button><button class="btn pri grow" id="finish">Završi</button></div>`);
- $("#keep").onclick=()=>{i++;show()};$("#wait").onclick=()=>{x.Status="Čeka drugog";save();i++;show()};$("#finish").onclick=()=>{x.Status="Završeno";save();i++;show()};$("#date").onclick=()=>{const d=prompt("Novi rok (GGGG-MM-DD)",x.Rok||today());if(d)x.Rok=d;save();i++;show()};
- };show();
+ const a=activeActions().slice().sort(attentionSort);
+ let i=0;
+ const result={date:today(),closed:0,moved:0,waiting:0,kept:0,items:[]};
+
+ const record=(x,action)=>result.items.push({id:x.ID,action});
+
+ const finishReview=()=>{
+   S.weeklyReviews.push(result);save();
+   openDlg(`<h2>Nedeljni pregled završen</h2>
+   <div class="kpis" style="margin-top:12px">
+    <div class="kpi"><div class="xs">Završeno</div><div class="num">${result.closed}</div></div>
+    <div class="kpi"><div class="xs">Pomjeren rok</div><div class="num">${result.moved}</div></div>
+    <div class="kpi"><div class="xs">Čeka drugog</div><div class="num">${result.waiting}</div></div>
+    <div class="kpi"><div class="xs">Ostavljeno</div><div class="num">${result.kept}</div></div>
+   </div>
+   <button class="btn pri" style="width:100%" id="wrDone">Zatvori</button>`);
+   $("#wrDone").onclick=()=>{closeDlg();render()};
+ };
+
+ const show=()=>{
+  if(i>=a.length)return finishReview();
+  const x=a[i],streak=unchangedReviewStreak(x.ID);
+  openDlg(`<div class="xs">Nedeljni pregled · ${i+1}/${a.length}</div>
+   <h2 style="margin-top:7px">${esc(x.Zadatak)}</h2>
+   <div class="meta">${x.Projekat?`<span class="chip">${esc(x.Projekat)}</span>`:""}${x.Odgovoran?`<span class="chip person">${esc(x.Odgovoran)}</span>`:""}${x.Rok?`<span class="chip date">${esc(fmtDate(x.Rok))}</span>`:""}${streak>=2?`<span class="chip priority strategic">${streak} pregleda bez promjene</span>`:""}</div>
+   <div class="btnrow" style="margin-top:16px"><button class="btn grow" id="keep">Ostavi</button><button class="btn grow" id="wait">Čeka drugog</button></div>
+   <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="date">Promijeni rok</button><button class="btn pri grow" id="finish">Završi</button></div>`);
+
+  $("#keep").onclick=()=>{result.kept++;record(x,"keep");i++;show()};
+  $("#wait").onclick=()=>{x.Status="Čeka drugog";result.waiting++;record(x,"wait");save();i++;show()};
+  $("#finish").onclick=()=>{x.Status="Završeno";result.closed++;record(x,"finish");save();i++;show()};
+  $("#date").onclick=()=>{
+    const d=prompt("Novi rok (GGGG-MM-DD)",x.Rok||today());
+    if(d){x.Rok=d;result.moved++;record(x,"move");save()}else{result.kept++;record(x,"keep")}
+    i++;show()
+  };
+ };
+ show();
 }
+function reviewHistoryDialog(){
+ const rs=(S.weeklyReviews||[]).slice().reverse();
+ openDlg(`<div class="row between"><h2>Istorija nedeljnih pregleda</h2><button class="btn" id="rhc">×</button></div>
+ <div class="list" style="margin-top:12px">${rs.map(r=>`<div class="card tight"><b>${esc(fmtDate(r.date||""))}</b><div class="sm mute" style="margin-top:5px">Završeno ${r.closed||0} · Rok pomjeren ${r.moved||0} · Čeka ${r.waiting||0} · Ostavljeno ${r.kept||0}</div></div>`).join("")||`<div class="empty">Još nema nedeljnih pregleda.</div>`}</div>`);
+ $("#rhc").onclick=closeDlg;
+}
+
 function notesDialog(){openDlg(`<div class="row between"><h2>Beleške</h2><button class="btn" id="nc">×</button></div><div class="list" style="margin-top:12px">${notes().map(n=>`<div class="card tight"><b>${esc(n.Zadatak)}</b><div class="sm mute">${esc(n.Projekat||n.Sistem||"")}</div><button class="btn sm" data-noteaction="${n.ID}" style="margin-top:8px">Pretvori u akciju</button></div>`).join("")||`<div class="empty">Nema beleški.</div>`}</div>`);$("#nc").onclick=closeDlg;$("#dlgBody").querySelectorAll("[data-noteaction]").forEach(b=>b.onclick=()=>{const n=S.items.find(x=>x.ID===Number(b.dataset.noteaction));n.Tip="Akcija";n.Status="Otvoreno";n.Odgovoran=n.Odgovoran||"Ivan";save();closeDlg();render()})}
-function archiveDialog(){openDlg(`<div class="row between"><h2>Arhiva</h2><button class="btn" id="ac">×</button></div><div class="list" style="margin-top:12px">${S.items.filter(x=>x.Status==="Završeno").map(taskCard).join("")||`<div class="empty">Arhiva je prazna.</div>`}</div>`);$("#ac").onclick=closeDlg;bindCards()}
-function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="obaveze-backup-"+today()+".json";a.click();URL.revokeObjectURL(a.href)}
+function archiveDialog(){openDlg(`<div class="row between"><h2>Arhiva</h2><button class="btn" id="ac">×</button></div><div class="list" style="margin-top:12px">${S.items.filter(x=>x.Status==="Završeno"||x.Status==="Završen").map(taskCard).join("")||`<div class="empty">Arhiva je prazna.</div>`}</div>`);$("#ac").onclick=closeDlg;bindCards()}
+function exportData(){S._lastBackup=today();save();const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="obaveze-backup-"+today()+".json";a.click();URL.revokeObjectURL(a.href)}
 function resetData(){
  openDlg(`<h2>Resetuj sve podatke?</h2><p class="mute" style="margin:10px 0 16px">Ovo trajno briše sve lokalne projekte, akcije, beleške i istoriju nedeljnih pregleda na ovom uređaju.</p><div class="btnrow"><button class="btn danger grow" id="resetYes">Obriši sve</button><button class="btn grow" id="resetNo">Otkaži</button></div>`);
  $("#resetNo").onclick=closeDlg;
