@@ -260,6 +260,17 @@ nav button.on:after{
   content:"";position:absolute;bottom:4px;left:29%;right:29%;height:3px;border-radius:3px;background:var(--green);
 }
 
+/* Browser / install landing */
+.browserLanding{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 18px 60px}
+.browserLandingCard{width:min(520px,100%);background:#fff;border:1px solid #edf0ee;border-radius:22px;box-shadow:var(--shadow);padding:24px 20px;text-align:center}
+.browserLandingLogo{width:170px;height:58px;margin:0 auto 20px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.browserLandingLogo img{display:block;width:100%;height:100%;object-fit:contain}
+.browserLanding h1{font-size:28px;letter-spacing:-.02em;margin-bottom:8px}
+.browserLanding p{font-size:15px;line-height:1.5;color:var(--mute);margin:0 auto;max-width:420px}
+.browserLanding .localBadge{display:inline-flex;align-items:center;gap:7px;margin:18px 0 16px;padding:8px 12px;border-radius:999px;background:var(--green-soft);color:var(--green-deep);font-size:13px;font-weight:750}
+.browserLanding .steps{margin-top:18px;text-align:left;background:var(--paper-soft);border:1px solid var(--line);border-radius:15px;padding:14px 16px;color:var(--text);font-size:14px;line-height:1.5}
+.browserLanding .steps b{display:block;margin-bottom:5px}
+
 /* Safety */
 .card,.row,.grow,.taskTitle,label,summary{min-width:0}
 .card b,.card .sm,.card .xs,.taskTitle,label,summary{overflow-wrap:anywhere}
@@ -306,6 +317,17 @@ function save(){localStorage.setItem(KEY,JSON.stringify(S))}
 
 function isStandalone(){
  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function renderBrowserLanding(){
+ document.querySelector('nav').style.display='none';
+ $('#fab').style.display='none';
+ $('#view').innerHTML=`<section class="browserLanding"><div class="browserLandingCard">
+  <div class="browserLandingLogo"><img src="https://www.grawe.at/fileadmin/shared/Logos/Logo_GRAWE_2021_RGB.jpg" alt="GRAWE"></div>
+  <h1>Obaveze</h1>
+  <div class="localBadge">● Lokalna aplikacija</div>
+  <p>Radni podaci se čuvaju samo u instaliranoj aplikaciji na ovom uređaju. Ova web stranica služi samo za instalaciju i ažuriranje aplikacije.</p>
+  <div class="steps"><b>Na iPhone-u</b>Otvori Share meni u Safariju i izaberi <strong>Add to Home Screen</strong>. Nakon instalacije, za svakodnevni rad otvaraj samo ikonicu <strong>Obaveze</strong> sa početnog ekrana.</div>
+ </div></section>`;
 }
 
 function daysSince(d){
@@ -610,12 +632,17 @@ function resetData(){
  $("#resetYes").onclick=()=>{localStorage.removeItem(KEY);S={items:[],people:[],weeklyReviews:[],lastId:0};save();closeDlg();render()};
 }
 function bindCards(){document.querySelectorAll("[data-item]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.item)))}
-document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{route=b.dataset.nav;render()});
-$("#fab").onclick=()=>{if(route==="akcije")editItem(null,"Akcija");else if(route==="projekti")editItem(null,"Projekat");else if(route==="beleske")editItem(null,"Beleška");else quickAdd()};$("#dlg").addEventListener("click",e=>{if(e.target===$("#dlg"))closeDlg()});
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260829-2").then(reg=>reg.update()).catch(()=>{});
+  navigator.serviceWorker.register("sw.js?v=20260829-3").then(reg=>reg.update()).catch(()=>{});
  });
 }
-norm();render();
+if(isStandalone()){
+ document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{route=b.dataset.nav;render()});
+ $("#fab").onclick=()=>{if(route==="akcije")editItem(null,"Akcija");else if(route==="projekti")editItem(null,"Projekat");else if(route==="beleske")editItem(null,"Beleška");else quickAdd()};
+ $("#dlg").addEventListener("click",e=>{if(e.target===$("#dlg"))closeDlg()});
+ norm();render();
+}else{
+ renderBrowserLanding();
+}
 </script></body></html>
