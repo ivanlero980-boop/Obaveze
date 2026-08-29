@@ -300,6 +300,8 @@ nav button.on:after{
   .summaryTile{padding-left:4px;padding-right:4px}
   .summaryTitle{font-size:11px}
 }
+
+.filterScroll{display:flex;gap:7px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}.filterScroll::-webkit-scrollbar{display:none}.filterScroll .btn{flex:0 0 auto}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -423,7 +425,7 @@ function render(){
  bindCards(); bindMenu();
 }
 function head(title,sub=""){
- return `<div class="top"><div><h1>${esc(title)}</h1>${sub?`<div class="sm mute">${esc(sub)}</div>`:""}</div><button class="btn" id="menuBtn" aria-label="Meni">☰</button></div>`;
+ return `<div class="top"><div><h1>${esc(title)}</h1>${sub?`<div class="sm mute">${esc(sub)}</div>`:""}</div></div>`;
 }
 function vPregled(){
  const actions=activeActions().filter(x=>(x.Oblast||"Poslovno")===dashboardArea);
@@ -508,17 +510,44 @@ function actionListCard(x){
  </div>`;
 }
 function vAkcije(){
- const a=activeActions().slice().sort(attentionSort);
- const draw=arr=>{$("#tasks").innerHTML=arr.map(actionListCard).join("")||`<div class="empty">Nema akcija u ovom prikazu.</div>`;bindCards()};
- $("#view").innerHTML=head("Akcije",`${a.length} otvorenih akcija`)+`<div class="tabs"><button class="btn on" data-filter="all">Sve</button><button class="btn" data-filter="Strateško">Strateško</button><button class="btn" data-filter="Čeka drugog">Čeka drugog</button></div><div class="list" id="tasks"></div>`;
- draw(a);
- $("#view").querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{
-  $("#view").querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("on",x===b));
-  let f=b.dataset.filter,arr=activeActions().slice().sort(attentionSort);
-  if(f==="Strateško")arr=arr.filter(x=>x.Prioritet===f);
-  if(f==="Čeka drugog")arr=arr.filter(x=>x.Status===f);
-  
-  draw(arr);
+ let areaFilter="all",viewFilter="all";
+ const all=()=>activeActions().slice().sort(attentionSort);
+ const filtered=()=>{
+  let arr=all();
+  if(areaFilter!=="all")arr=arr.filter(x=>(x.Oblast||"Poslovno")===areaFilter);
+  if(viewFilter==="Kasni")arr=arr.filter(x=>x.Rok&&daysTo(x.Rok)<0);
+  if(viewFilter==="Danas")arr=arr.filter(x=>x.Rok===today());
+  if(viewFilter==="Strateško")arr=arr.filter(x=>x.Prioritet==="Strateško");
+  if(viewFilter==="Čeka drugog")arr=arr.filter(x=>x.Status==="Čeka drugog");
+  return arr;
+ };
+ const draw=()=>{$("#tasks").innerHTML=filtered().map(actionListCard).join("")||`<div class="empty">Nema akcija u ovom prikazu.</div>`;bindCards()};
+ $("#view").innerHTML=head("Akcije",`${all().length} otvorenih akcija`)+`
+ <div class="sm mute" style="margin:8px 0 5px">Oblast</div>
+ <div class="tabs filterScroll" id="areaFilters">
+  <button class="btn on" data-area-filter="all">Sve</button>
+  <button class="btn" data-area-filter="Poslovno">Poslovno</button>
+  <button class="btn" data-area-filter="Privatno">Privatno</button>
+ </div>
+ <div class="sm mute" style="margin:12px 0 5px">Prikaz</div>
+ <div class="tabs filterScroll" id="viewFilters">
+  <button class="btn on" data-view-filter="all">Sve</button>
+  <button class="btn" data-view-filter="Kasni">Kasni</button>
+  <button class="btn" data-view-filter="Danas">Danas</button>
+  <button class="btn" data-view-filter="Strateško">Strateško</button>
+  <button class="btn" data-view-filter="Čeka drugog">Čeka drugog</button>
+ </div>
+ <div class="list" id="tasks"></div>`;
+ draw();
+ $("#view").querySelectorAll("[data-area-filter]").forEach(b=>b.onclick=()=>{
+  areaFilter=b.dataset.areaFilter;
+  $("#areaFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));
+  draw();
+ });
+ $("#view").querySelectorAll("[data-view-filter]").forEach(b=>b.onclick=()=>{
+  viewFilter=b.dataset.viewFilter;
+  $("#viewFilters").querySelectorAll(".btn").forEach(x=>x.classList.toggle("on",x===b));
+  draw();
  });
 }
 function vBeleske(){
