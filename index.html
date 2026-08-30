@@ -740,6 +740,41 @@ function seriesDialog(id){
  $("#dlgBody").querySelectorAll("[data-series-meeting]").forEach(b=>b.onclick=()=>meetingDialog(Number(b.dataset.seriesMeeting)));
  bindCards();
 }
+function agendaDialog(meetingId){
+ const m=meetingById(meetingId);if(!m)return;
+ openDlg(`<div class="row between"><div><h2>Dodaj agendu</h2><div class="sm mute">${meetingLabel(m)}${m.Naslov?` · ${esc(m.Naslov)}`:""}</div></div><button class="btn" id="agendaClose">×</button></div>
+  <div class="sm mute" style="margin-top:12px">Unesi jednu temu po redu. Svaki red će biti sačuvan kao zasebna Beleška vezana za ovaj sastanak.</div>
+  <label class="f"><span class="sm mute">Teme</span><textarea id="agendaText" class="noteInput" rows="10" placeholder="Tema 1&#10;Tema 2&#10;Tema 3"></textarea></label>
+  <div class="btnrow"><button class="btn pri grow" id="agendaSave">Sačuvaj agendu</button><button class="btn grow" id="agendaCancel">Otkaži</button></div>`);
+ $("#agendaClose").onclick=()=>meetingDialog(meetingId);
+ $("#agendaCancel").onclick=()=>meetingDialog(meetingId);
+ $("#agendaSave").onclick=()=>{
+  const lines=($("#agendaText").value||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(!lines.length){alert("Unesi bar jednu temu.");return}
+  lines.forEach(task=>{
+   S.items.push({
+    ID:++S.lastId,
+    Tip:"Beleška",
+    Status:"Aktivna",
+    Zadatak:task,
+    Oblast:"Poslovno",
+    KolegijumID:m.ID,
+    SerijaID:null,
+    Odgovoran:"",
+    Rok:"",
+    Projekat:"",
+    ProjectID:null,
+    Prioritet:"",
+    Sistem:"",
+    Izvor:"",
+    "Detalj izvora":"",
+    "Detalji dogovora":"",
+    Napomena:""
+   });
+  });
+  save();norm();render();meetingDialog(meetingId);
+ };
+}
 function editMeeting(m=null,forceNew=false,context={}){
  const isNew=forceNew||!m;m=m||{ID:0,Datum:today(),Naslov:"",Napomena:""};
  const series=(S.meetingSeries||[]).slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
@@ -774,7 +809,8 @@ function meetingDialog(id){
    <div class="kpi"><div class="xs">Kasni</div><div class="num">${late.length}</div></div>
   </div>
   <div class="meetingAddGrid">
-   <button class="btn pri" id="kmAddAction">+ Akcija</button>
+   <button class="btn pri" id="kmAddAgenda">+ Agenda</button>
+   <button class="btn" id="kmAddAction">+ Akcija</button>
    <button class="btn" id="kmAddProject">+ Projekat</button>
    <button class="btn" id="kmAddNote">+ Beleška</button>
   </div>
@@ -785,6 +821,7 @@ function meetingDialog(id){
   <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="kmEdit">Uredi sastanak</button><button class="btn danger grow" id="kmDelete">Obriši</button></div>`);
  $("#kdc").onclick=closeDlg;
  if($("#openSeries"))$("#openSeries").onclick=()=>seriesDialog(m.SerijaID);
+ $("#kmAddAgenda").onclick=()=>agendaDialog(m.ID);
  $("#kmEdit").onclick=()=>editMeeting(m);
  $("#kmAddAction").onclick=()=>editItem(null,"Akcija",{KolegijumID:m.ID,SerijaID:null,Oblast:"Poslovno"},{returnMeeting:true,meetingId:m.ID});
  $("#kmAddProject").onclick=()=>editItem(null,"Projekat",{KolegijumID:m.ID,SerijaID:null},{returnMeeting:true,meetingId:m.ID});
@@ -918,9 +955,11 @@ function quickAdd(){
   <button class="card" data-type="Akcija"><b>Akcija</b><div class="sm mute">Konkretna stvar koju treba uraditi</div></button>
   <button class="card" data-type="Beleška"><b>Beleška</b><div class="sm mute">Informacija ili misao</div></button>
   <button class="card" data-type="Projekat"><b>Projekat</b><div class="sm mute">Poslovna tema sa rokom i akcijama</div></button>
+  <button class="card" id="quickNewMeeting"><b>Novi sastanak</b><div class="sm mute">Otvori novi termin sa datumom, naslovom i opcionom serijom</div></button>
   ${upcomingMeetings.length?`<button class="card" id="quickMeetingNote"><b>Za sastanak</b><div class="sm mute">Brzo dodaj temu na predstojeći sastanak</div></button>`:""}
  </div>`);
  $("#dlgBody").querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>editItem(null,b.dataset.type));
+ $("#quickNewMeeting").onclick=()=>editMeeting();
  if($("#quickMeetingNote"))$("#quickMeetingNote").onclick=()=>quickMeetingNote(upcomingMeetings);
 }
 function quickMeetingNote(meetings){
@@ -1044,7 +1083,7 @@ function resetData(){
 function bindCards(){document.querySelectorAll("[data-item]").forEach(c=>c.onclick=()=>itemDialog(Number(c.dataset.item)))}
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260830-9").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260830-10").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
