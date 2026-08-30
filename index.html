@@ -472,6 +472,7 @@ function taskCard(x){
 }
 let route="pregled",dashboardArea="Poslovno";
 const actionView={area:"all",priority:"all",search:"",laterOpen:false};
+let notesView="standalone";
 function render(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("on",b.dataset.nav===route));
  ({pregled:vPregled,akcije:vAkcije,projekti:vProjekti,beleske:vBeleske}[route]||vPregled)();
@@ -614,9 +615,31 @@ function vAkcije(){
  $("#view").querySelectorAll("[data-priority-filter]").forEach(b=>b.onclick=()=>{actionView.priority=b.dataset.priorityFilter;vAkcije()});
 }
 function vBeleske(){
- const ns=notes().filter(n=>n.Status!=="Arhivirana"&&n.Status!=="Završeno").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
- $("#view").innerHTML=head("Beleške",`${ns.length} aktivnih`)+`<div class="list">${ns.map(n=>`<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${n.KolegijumID?`<span class="chip">${meetingById(n.KolegijumID)?.SerijaID&&seriesById(meetingById(n.KolegijumID).SerijaID)?`${esc(seriesById(meetingById(n.KolegijumID).SerijaID).Naziv)} · ${esc(fmtDate(meetingById(n.KolegijumID).Datum))}`:`Sastanak · ${esc(fmtDate(meetingById(n.KolegijumID)?.Datum||""))}`}</span>`:""}</div></div></div></div>`).join("")||`<div class="empty">Nema aktivnih beleški.</div>`}</div>`;
+ const ns=notes().filter(n=>n.Status!=="Arhivirana"&&n.Status!=="Završeno");
+ const standalone=ns.filter(n=>!n.KolegijumID).slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
+ const meetingNotes=ns.filter(n=>n.KolegijumID);
+ const groups=[...new Set(meetingNotes.map(n=>Number(n.KolegijumID)).filter(Boolean))].map(id=>{
+  const m=meetingById(id);
+  const items=meetingNotes.filter(n=>Number(n.KolegijumID)===id).slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+  return {id,m,items,lastId:Math.max(...items.map(n=>Number(n.ID)||0))};
+ }).sort((a,b)=>b.lastId-a.lastId);
+ const tabs=`<div class="tabs">
+  <button class="btn ${notesView==="standalone"?"pri":""}" id="notesStandalone">Samostalne <span class="countBadge">${standalone.length}</span></button>
+  <button class="btn ${notesView==="meetings"?"pri":""}" id="notesMeetings">Po sastancima <span class="countBadge">${groups.length}</span></button>
+ </div>`;
+ const standaloneHTML=`<div class="list">${standalone.map(n=>`<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span></div></div></div></div>`).join("")||`<div class="empty">Nema aktivnih samostalnih beleški.</div>`}</div>`;
+ const meetingHTML=`<div class="list">${groups.map(g=>{
+   const m=g.m;
+   const series=m&&m.SerijaID?seriesById(m.SerijaID):null;
+   const label=m?(series?`${esc(series.Naziv)} · ${esc(fmtDate(m.Datum))}`:`Sastanak · ${esc(fmtDate(m.Datum||""))}`):"Sastanak";
+   const title=m&&m.Naslov?`<div class="sm mute">${esc(m.Naslov)}</div>`:"";
+   return `<div class="card noteCard" data-note-meeting="${g.id}"><div class="row between"><div class="grow"><div class="taskTitle">${label}</div>${title}<div class="sm mute" style="margin-top:5px">${g.items.length} ${g.items.length===1?"beleška":"beleški"}</div></div><span>›</span></div></div>`;
+  }).join("")||`<div class="empty">Nema aktivnih beleški vezanih za sastanke.</div>`}</div>`;
+ $("#view").innerHTML=head("Beleške",`${ns.length} aktivnih`)+tabs+(notesView==="meetings"?meetingHTML:standaloneHTML);
+ $("#notesStandalone").onclick=()=>{notesView="standalone";vBeleske()};
+ $("#notesMeetings").onclick=()=>{notesView="meetings";vBeleske()};
  $("#view").querySelectorAll("[data-note]").forEach(c=>c.onclick=()=>noteDialog(Number(c.dataset.note)));
+ $("#view").querySelectorAll("[data-note-meeting]").forEach(c=>c.onclick=()=>meetingNotesDialog(Number(c.dataset.noteMeeting)));
 }
 function vProjekti(){
  const ps=projects().filter(p=>p.Status!=="Završeno").slice().sort((a,b)=>daysTo(a.Rok)-daysTo(b.Rok));
@@ -1055,15 +1078,27 @@ function quickMeetingNoteEntry(id){
   S.items.push(n);save();norm();closeDlg();render();
  };
 }
-function noteDialog(id,fromMeeting=false){
+function meetingNotesDialog(meetingId){
+ const m=meetingById(meetingId);
+ const ns=notes().filter(n=>n.Status!=="Arhivirana"&&n.Status!=="Završeno"&&Number(n.KolegijumID)===Number(meetingId)).slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const series=m&&m.SerijaID?seriesById(m.SerijaID):null;
+ const label=m?(series?`${esc(series.Naziv)} · ${esc(fmtDate(m.Datum))}`:`Sastanak · ${esc(fmtDate(m.Datum||""))}`):"Sastanak";
+ openDlg(`<div class="row between"><div><h2>${label}</h2>${m&&m.Naslov?`<div class="sm mute">${esc(m.Naslov)}</div>`:""}</div><button class="btn" id="meetingNotesClose">×</button></div>
+  <div class="sm mute" style="margin-top:10px">${ns.length} ${ns.length===1?"aktivna beleška":"aktivnih beleški"}</div>
+  <div class="list" style="margin-top:12px">${ns.map(n=>`<div class="card noteCard" data-group-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div></div></div></div>`).join("")||`<div class="empty">Nema aktivnih beleški.</div>`}</div>`);
+ $("#meetingNotesClose").onclick=closeDlg;
+ $("#dlgBody").querySelectorAll("[data-group-note]").forEach(c=>c.onclick=()=>noteDialog(Number(c.dataset.groupNote),false,meetingId));
+}function noteDialog(id,fromMeeting=false,returnMeetingNotesId=null){
  const n=S.items.find(x=>x.ID===id);if(!n)return;
+ const back=()=>returnMeetingNotesId?meetingNotesDialog(returnMeetingNotesId):closeDlg();
  openDlg(`<div class="row between"><h2>Beleška</h2><button class="btn" id="noteClose">×</button></div><div class="noteFull">${esc(n.Zadatak)}</div><div class="meta" style="margin-top:10px"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${n.KolegijumID?`<span class="chip">${meetingById(n.KolegijumID)?.SerijaID&&seriesById(meetingById(n.KolegijumID).SerijaID)?`${esc(seriesById(meetingById(n.KolegijumID).SerijaID).Naziv)} · ${esc(fmtDate(meetingById(n.KolegijumID).Datum))}`:`Sastanak · ${esc(fmtDate(meetingById(n.KolegijumID)?.Datum||""))}`}</span>`:""}</div>
  <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="noteEdit">Uredi</button><button class="btn pri grow" id="noteConvert">Pretvori u akciju</button></div>
  <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="noteArchive">Arhiviraj</button><button class="btn danger grow" id="noteDelete">Obriši</button></div>`);
- $("#noteClose").onclick=closeDlg;$("#noteEdit").onclick=()=>editItem(n,"Beleška",{},fromMeeting?{returnMeeting:true,meetingId:n.KolegijumID}:{});
+ $("#noteClose").onclick=back;
+ $("#noteEdit").onclick=()=>editItem(n,"Beleška",{},fromMeeting?{returnMeeting:true,meetingId:n.KolegijumID}:{});
  $("#noteConvert").onclick=()=>editItem(null,"Akcija",{Zadatak:n.Zadatak,Oblast:n.Oblast||"Poslovno",KolegijumID:n.KolegijumID||null,SerijaID:n.KolegijumID?null:(n.SerijaID||null),_fromNoteId:n.ID},fromMeeting?{returnMeeting:true,meetingId:n.KolegijumID}:{});
- $("#noteArchive").onclick=()=>{n.Status="Arhivirana";save();closeDlg();render()};
- $("#noteDelete").onclick=()=>{if(confirm("Obriši ovu belešku?")){S.items=S.items.filter(x=>x.ID!==n.ID);save();closeDlg();render()}};
+ $("#noteArchive").onclick=()=>{n.Status="Arhivirana";save();render();returnMeetingNotesId?meetingNotesDialog(returnMeetingNotesId):closeDlg()};
+ $("#noteDelete").onclick=()=>{if(confirm("Obriši ovu belešku?")){S.items=S.items.filter(x=>x.ID!==n.ID);save();render();returnMeetingNotesId?meetingNotesDialog(returnMeetingNotesId):closeDlg()}};
 }
 function projectDialog(id){
  const p=S.items.find(x=>x.ID===id);if(!p)return;
@@ -1175,7 +1210,7 @@ function bindCards(root=document,context=null){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260830-13").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260830-14").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
