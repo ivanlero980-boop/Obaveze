@@ -445,14 +445,14 @@ nav button.on:after{
 .proAgendaList{display:grid;gap:5px}
 .proAgendaList>div{display:grid;grid-template-columns:24px 1fr;line-height:1.35}
 .proAgendaList b{color:#00885a}
-.proTopic{border-top:1px solid #cfdad4;padding-top:6px;margin-top:8px}
+.proTopic{border-top:1px solid #d9e1dc;padding-top:5px;margin-top:6px}
 .proTopicHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px}
-.proTopicHead b{font-size:13px}
-.proField{display:grid;grid-template-columns:82px 1fr;border-top:1px solid #e2e8e4;font-size:12px;line-height:1.35}
+.proTopicHead b{font-size:12.5px}
+.proField{display:block;border-top:0;font-size:12px;line-height:1.34;padding:2px 0}
 .proField:last-child{border-bottom:1px solid #e2e8e4}
-.proLabel{font-weight:800;color:#00885a;padding:5px 6px 5px 0}
-.proField>div:last-child{padding:5px 0 5px 7px;border-left:1px solid #e2e8e4}
-.proOutcome{padding-bottom:5px;margin-bottom:5px;border-bottom:1px dashed #e2e8e4}
+.proLabel{display:inline;font-weight:800;color:#00885a;padding:0;margin-right:4px}
+.proField>div:last-child{display:inline;padding:0;border-left:0}
+.proOutcome{padding:2px 0 3px;margin:0;border-bottom:0}
 .proOutcome:last-child{padding-bottom:0;margin-bottom:0;border-bottom:0}
 .proActionTableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .proActionTable{width:100%;border-collapse:collapse;font-size:12px;min-width:620px}
@@ -474,6 +474,7 @@ nav button.on:after{
 .proCarryTable td{padding:7px;border:1px solid #dbe3de;vertical-align:top}
 .proCarryTable th:first-child,.proCarryTable td:first-child{width:58px;text-align:center}
 
+.minutesSection h3{margin-top:14px;margin-bottom:6px}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -1405,22 +1406,20 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;ctx=canvas.getContext("2d");
   ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);pages.push(canvas);pageNo=pages.length;y=M;
   if(continued){
-   ctx.drawImage(logo,M,y,190,Math.round(190*logo.naturalHeight/logo.naturalWidth));
-   font(22,700);ctx.fillStyle=GREEN;ctx.textAlign="right";ctx.fillText("ZAPISNIK",W-M,y+20);
-   font(18,500);ctx.fillStyle=MUTED;ctx.fillText(d.title||"Sastanak",W-M,y+49);ctx.textAlign="left";
-   y+=78;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=24;
+   font(16,500);ctx.fillStyle=MUTED;ctx.textAlign="right";ctx.fillText(d.title||"Sastanak",W-M,y+12);ctx.textAlign="left";
+   y+=24;ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=18;
   }
  };
  const ensure=h=>{if(y+h>BOTTOM)newPage(true)};
- const section=title=>{ensure(58);y+=14;font(26,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y);y+=13;ctx.strokeStyle=LINE;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=20};
+ const section=title=>{ensure(58);y+=18;font(24,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y);y+=11;ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=17};
  const field=(label,value,opts={})=>{
   if(!value)return;
-  const labelW=142,valX=M+labelW+14,maxW=W-M-valX;
-  const size=opts.size||22,lines=wrap(value,maxW,size,opts.weight||400,opts.italic||false),h=Math.max(42,lines.length*lineHeight(size)+14);
-  ensure(h+4);ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();
-  font(20,700);ctx.fillStyle=GREEN;ctx.fillText(label,M,y+27);
+  const size=opts.size||21,labelSize=opts.labelSize||19,labelText=label+":",gap=8;
+  font(labelSize,700);const labelW=ctx.measureText(labelText).width,maxW=W-2*M-labelW-gap;
+  const lines=wrap(value,maxW,size,opts.weight||400,opts.italic||false),lh=lineHeight(size),h=Math.max(34,lines.length*lh+8);
+  ensure(h+2);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+23);
   font(size,opts.weight||400,opts.italic||false);ctx.fillStyle=opts.color||DARK;
-  lines.forEach((l,i)=>ctx.fillText(l,valX,y+26+i*lineHeight(size)));y+=h;
+  lines.forEach((l,i)=>ctx.fillText(l,M+labelW+gap,y+23+i*lh));y+=h;
  };
  const firstPage=()=>{
   newPage(false);
@@ -1430,7 +1429,16 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   font(38,700);ctx.fillStyle=DARK;const titleLines=wrap(d.title||"Sastanak",510,38,700);titleLines.forEach((l,i)=>ctx.fillText(l,W-M,y+73+i*48));
   font(22,400);ctx.fillStyle=MUTED;ctx.fillText(`${d.date||"—"}${meetingNo?` · ${meetingNo}. sastanak`:""}`,W-M,y+73+titleLines.length*48+10);ctx.textAlign="left";
   y+=Math.max(logoH,titleLines.length*48+105)+26;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=30;
-  field("Prisustvovali",present||"—",{size:24});if(absent)field("Odsutni",absent,{size:24});
+  const attendanceRow=(label,value)=>{
+   if(!value)return;
+   const labelText=label+":",labelSize=20,size=22,gap=10;
+   font(labelSize,700);const lw=ctx.measureText(labelText).width;
+   const normalized=String(value).split(/\n+/).map(s=>s.trim()).filter(Boolean).join(", ");
+   const lines=wrap(normalized,W-2*M-lw-gap,size,400),lh=27,h=Math.max(30,lines.length*lh+4);
+   ensure(h);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+22);
+   font(size,400);ctx.fillStyle=DARK;lines.forEach((l,i)=>ctx.fillText(l,M+lw+gap,y+22+i*lh));y+=h;
+  };
+  attendanceRow("Prisustvovali",present||"—");attendanceRow("Odsutni",absent);
   if(extras.intro){section("Uvod");textBlock(extras.intro,M,W-2*M,25,400,DARK,false,8)}
  };
  firstPage();
@@ -1441,7 +1449,7 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   font(24,700);ctx.fillStyle=GREEN;ctx.fillText(`${a.no}.`,M,y+24);
   font(24,400);ctx.fillStyle=DARK;lines.forEach((l,i)=>ctx.fillText(l,M+numW,y+24+i*31));y+=h;
  });
- section("Obrada tačaka dnevnog reda");
+ y+=12;section("Obrada tačaka dnevnog reda");
 
  for(const a of processedAgenda){
   const linkedActions=a.actions.map(actionById).filter(Boolean),linkedProjects=a.projects.map(projectById).filter(Boolean);
@@ -1450,30 +1458,30 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   if(a.transferredTo)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`;
   else if(a.carry)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`;
   else if(unprocessed&&a.carryDecision==="Ne prenosi")transfer="Bez ishoda · nije preneseno";
-  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,24,700),titleH=titleLines.length*31+18;
-  ensure(titleH+44);y+=7;ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=24;
-  font(24,700);ctx.fillStyle=DARK;titleLines.forEach((l,i)=>ctx.fillText(l,M,y+i*31));y+=titleLines.length*31+5;
+  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,20,700),titleH=titleLines.length*25+6;
+  ensure(titleH+32);y+=7;
+  font(20,700);ctx.fillStyle=DARK;titleLines.forEach((l,i)=>ctx.fillText(l,M,y+i*25));y+=titleLines.length*25+2;
   if(a.conclusion)field("Zaključak",a.conclusion,{size:24});
   if(linkedActions.length){
-   const labelW=142,valX=M+labelW+14,maxW=W-M-valX;
-   let total=0,parts=[];
    linkedActions.forEach((x,i)=>{
-    const title=`${a.no}.${i+1} ${x.title}`,tl=wrap(title,maxW,21,700),meta=[x.owner?`Odgovoran: ${x.owner}`:"",x.due?`Rok: ${x.due}`:""].filter(Boolean).join(" · "),ml=meta?wrap(meta,maxW,18,500):[],dl=x.detail?wrap(x.detail,maxW,18,400):[];
-    const h=tl.length*27+ml.length*23+dl.length*23+8;parts.push({x,tl,ml,dl,h});total+=h;
+    const ref=`${a.no}.${i+1}`,label=`${ref} Akcija`,labelSize=18,size=20,labelText=label+":",gap=8;
+    font(labelSize,700);const lw=ctx.measureText(labelText).width;
+    const bodyW=W-2*M-lw-gap,titleLines=wrap(x.title,bodyW,size,700);
+    const meta=[x.owner?x.owner:"",x.due?x.due:""].filter(Boolean).join(" · ");
+    const metaLines=meta?wrap(meta,bodyW,17,500):[],detailLines=x.detail?wrap(x.detail,bodyW,17,400):[];
+    const h=titleLines.length*25+metaLines.length*21+detailLines.length*21+8;ensure(h+2);
+    font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+21);
+    let yy=y+21;font(size,700);ctx.fillStyle=DARK;titleLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*25));yy+=titleLines.length*25;
+    if(metaLines.length){font(17,500);ctx.fillStyle=MUTED;metaLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*21));yy+=metaLines.length*21}
+    if(detailLines.length){font(17,400);ctx.fillStyle=MUTED;detailLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*21));}
+    y+=h;
    });
-   const h=Math.max(50,total+18);ensure(h+4);ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();
-   font(20,700);ctx.fillStyle=GREEN;ctx.fillText("Akcije",M,y+27);let yy=y+24;
-   parts.forEach(p=>{font(21,700);ctx.fillStyle=DARK;p.tl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*27));yy+=p.tl.length*27;
-    if(p.ml.length){font(18,500);ctx.fillStyle=MUTED;p.ml.forEach((l,i)=>ctx.fillText(l,valX,yy+i*23));yy+=p.ml.length*23}
-    if(p.dl.length){font(18,400);ctx.fillStyle=MUTED;p.dl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*23));yy+=p.dl.length*23}
-    yy+=8;
-   });y+=h;
   }
   if(linkedProjects.length){
-   linkedProjects.forEach((x,i)=>field(i?"": "Projekat",`${a.no}.${linkedActions.length+i+1} ${x.title}${x.due?` · Rok: ${x.due}`:""}${x.detail?`\n${x.detail}`:""}`,{size:23,weight:600}));
+   linkedProjects.forEach((x,i)=>field(i?"": "Projekat",`${a.no}.${linkedActions.length+i+1} ${x.title}${x.due?` · Rok: ${x.due}`:""}${x.detail?`\n${x.detail}`:""}`,{size:20,weight:600}));
   }
-  if(transfer)field("Prenos",transfer,{size:22,italic:true,color:MUTED});
-  y+=5;
+  if(transfer)field("Prenos",transfer,{size:19,italic:true,color:MUTED});
+  y+=2;
  }
  if(unconsideredAgenda.length){
   section("Tačke koje nijesu razmatrane i prenose se na sljedeći sastanak");
@@ -1595,17 +1603,13 @@ function meetingMinutesDialog(meetingId,tempExtras=null){
   </div>
   <div class="minutesActions">
    <button class="btn pri" id="minPdf">PDF zapisnik</button>
-   <button class="btn" id="minShare">Podijeli</button>
    <button class="btn" id="minSave">Sačuvaj ručna polja</button>
-   <button class="btn" id="minRefresh">Osvježi zapisnik</button>
   </div>
   <button class="btn" style="width:100%;margin-top:8px" id="minBack">Nazad na sastanak</button>`,`minutes:${meetingId}`,{refresh:()=>meetingMinutesDialog(meetingId,readMinutesExtras())});
 
  $("#minClose").onclick=navBack;$("#minBack").onclick=navBack;
  $("#minPdf").onclick=()=>exportMinutesPDF(meetingMinutesData(m),readMinutesExtras());
- $("#minShare").onclick=()=>{const now=minutesGeneratedAt();shareText(`${d.title||"Zapisnik"} — zapisnik`,minutesPlainText(meetingMinutesData(m),readMinutesExtras(),now))};
  $("#minSave").onclick=()=>{m.ZapisnikDraft=readMinutesExtras();save();alert("Sačuvana su ručna polja zapisnika. Činjenice i akcije se uvijek čitaju iz izvornog sastanka.")};
- $("#minRefresh").onclick=()=>meetingMinutesDialog(meetingId,readMinutesExtras());
  $("#dlgBody").querySelectorAll("[data-min-agenda]").forEach(b=>b.onclick=()=>noteDialog(Number(b.dataset.minAgenda)));
  $("#dlgBody").querySelectorAll("[data-min-action]").forEach(b=>b.onclick=()=>itemDialog(Number(b.dataset.minAction)));
  $("#dlgBody").querySelectorAll("[data-min-project]").forEach(b=>b.onclick=()=>seriesDialog(Number(b.dataset.minProject)));
@@ -2332,7 +2336,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-42").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-43").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
