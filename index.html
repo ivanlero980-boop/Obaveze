@@ -1381,6 +1381,11 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
  const pages=[];let canvas,ctx,y=0,pageNo=0;const logo=await loadMinutesLogo();
  const actionById=id=>d.actions.find(x=>Number(x.id)===Number(id));
  const projectById=id=>d.projects.find(x=>Number(x.id)===Number(id));
+ const unconsideredAgenda=d.agenda.filter(a=>{
+  const acts=a.actions.map(actionById).filter(Boolean),projs=a.projects.map(projectById).filter(Boolean);
+  return !a.conclusion&&!acts.length&&!projs.length&&(a.carry||a.transferredTo);
+ });
+ const processedAgenda=d.agenda.filter(a=>!unconsideredAgenda.some(u=>Number(u.id)===Number(a.id)));
  const meetingNo=(extras.meetingNo||d.meetingNo||"").toString().trim();
  const present=extras.present!==undefined?extras.present:d.participants,absent=extras.absent||"";
  const font=(size,weight=400,italic=false)=>{ctx.font=`${italic?"italic ":""}${weight} ${size}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif`;ctx.fillStyle=DARK};
@@ -2327,7 +2332,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-41").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-42").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
