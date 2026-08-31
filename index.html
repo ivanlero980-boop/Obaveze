@@ -1378,8 +1378,8 @@ function loadMinutesLogo(){
  });
 }
 async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt()){
- const W=1100,H=1556,M=72,BOTTOM=1490,GREEN="#00885a",DARK="#1d2924",MUTED="#65736c",LINE="#d8e1dc",LIGHT="#f5f8f6";
- const pages=[];let canvas,ctx,y=0,pageNo=0;const logo=await loadMinutesLogo();
+ const W=1100,H=1556,M=84,BOTTOM=1472,GREEN="#008a5a",DARK="#1e2823",MUTED="#65736c",LINE="#d9e1dc";
+ const pages=[];let canvas,ctx,y=0;const logo=await loadMinutesLogo();
  const actionById=id=>d.actions.find(x=>Number(x.id)===Number(id));
  const projectById=id=>d.projects.find(x=>Number(x.id)===Number(id));
  const unconsideredAgenda=d.agenda.filter(a=>{
@@ -1389,139 +1389,157 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
  const processedAgenda=d.agenda.filter(a=>!unconsideredAgenda.some(u=>Number(u.id)===Number(a.id)));
  const meetingNo=(extras.meetingNo||d.meetingNo||"").toString().trim();
  const present=extras.present!==undefined?extras.present:d.participants,absent=extras.absent||"";
- const font=(size,weight=400,italic=false)=>{ctx.font=`${italic?"italic ":""}${weight} ${size}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif`;ctx.fillStyle=DARK};
- const wrap=(txt,maxW,size=28,weight=400,italic=false)=>{
-  font(size,weight,italic);const raw=String(txt||"").split(/\n/),out=[];
-  raw.forEach((p,pi)=>{const words=p.split(/\s+/).filter(Boolean);let line="";
-   words.forEach(w=>{const test=line?line+" "+w:w;if(ctx.measureText(test).width>maxW&&line){out.push(line);line=w}else line=test});
-   if(line)out.push(line);if(pi<raw.length-1)out.push("");
-  });return out.length?out:[""];
+
+ const font=(size,weight=400,italic=false)=>{
+  ctx.font=`${italic?"italic ":""}${weight} ${size}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif`;
  };
- const lineHeight=size=>Math.round(size*1.28);
- const textBlock=(txt,x,maxW,size=28,weight=400,color=DARK,italic=false,gap=0)=>{
-  const lines=wrap(txt,maxW,size,weight,italic),lh=lineHeight(size);ctx.fillStyle=color;font(size,weight,italic);ctx.fillStyle=color;
-  lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));y+=lines.length*lh+gap;return lines.length*lh+gap;
+ const wrap=(txt,maxW,size=20,weight=400,italic=false)=>{
+  font(size,weight,italic);const paras=String(txt||"").split(/\n/),out=[];
+  paras.forEach((p,pi)=>{
+   const words=p.split(/\s+/).filter(Boolean);let line="";
+   words.forEach(w=>{const t=line?line+" "+w:w;if(line&&ctx.measureText(t).width>maxW){out.push(line);line=w}else line=t});
+   if(line)out.push(line);if(pi<paras.length-1)out.push("");
+  });
+  return out.length?out:[""];
  };
- const newPage=(continued=true)=>{
+ const newPage=()=>{
   canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;ctx=canvas.getContext("2d");
-  ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);pages.push(canvas);pageNo=pages.length;y=M;
-  if(continued){
-   font(14,500);ctx.fillStyle=MUTED;ctx.textAlign="right";ctx.fillText(d.title||"Sastanak",W-M,y+10);ctx.textAlign="left";
-   y+=18;ctx.strokeStyle=LINE;ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=14;
-  }
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);pages.push(canvas);y=68;
  };
- const ensure=h=>{if(y+h>BOTTOM)newPage(true)};
- const section=title=>{ensure(54);y+=16;font(23,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y);y+=10;ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=15};
- const field=(label,value,opts={})=>{
+ const ensure=h=>{if(y+h>BOTTOM)newPage()};
+ const drawLines=(lines,x,yy,size,weight=400,color=DARK,italic=false,lh=null)=>{
+  font(size,weight,italic);ctx.fillStyle=color;const step=lh||Math.round(size*1.22);
+  lines.forEach((l,i)=>ctx.fillText(l,x,yy+i*step));return lines.length*step;
+ };
+ const section=title=>{
+  ensure(52);y+=13;font(22,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y+21);
+  y+=31;ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=12;
+ };
+ const inlineField=(label,value,{size=18,weight=400,italic=false,color=DARK}={})=>{
   if(!value)return;
-  const size=opts.size||19,labelSize=opts.labelSize||18,labelText=label+":",gap=8;
-  font(labelSize,700);const labelW=ctx.measureText(labelText).width,maxW=W-2*M-labelW-gap;
-  const lines=wrap(value,maxW,size,opts.weight||400,opts.italic||false),lh=lineHeight(size),h=Math.max(30,lines.length*lh+5);
-  ensure(h+2);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+21);
-  font(size,opts.weight||400,opts.italic||false);ctx.fillStyle=opts.color||DARK;
-  lines.forEach((l,i)=>ctx.fillText(l,M+labelW+gap,y+21+i*lh));y+=h;
+  const labelText=label+":",labelSize=17,gap=8;
+  font(labelSize,700);const lw=ctx.measureText(labelText).width,maxW=W-2*M-lw-gap;
+  const lines=wrap(value,maxW,size,weight,italic),lh=Math.round(size*1.22),h=Math.max(27,lines.length*lh+4);
+  ensure(h);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+20);
+  drawLines(lines,M+lw+gap,y+20,size,weight,color,italic,lh);y+=h;
  };
- const firstPage=()=>{
-  newPage(false);
-  const logoW=250,logoH=Math.round(logoW*logo.naturalHeight/logo.naturalWidth);
+ const firstPageHeader=()=>{
+  newPage();
+  const logoW=252,logoH=Math.round(logoW*logo.naturalHeight/logo.naturalWidth);
   ctx.drawImage(logo,M,y,logoW,logoH);
-  ctx.textAlign="right";font(25,700);ctx.fillStyle=GREEN;ctx.fillText("ZAPISNIK",W-M,y+28);
-  font(34,700);ctx.fillStyle=DARK;const titleLines=wrap(d.title||"Sastanak",540,34,700);titleLines.forEach((l,i)=>ctx.fillText(l,W-M,y+68+i*43));
-  font(22,400);ctx.fillStyle=MUTED;ctx.fillText(`${d.date||"—"}${meetingNo?` · ${meetingNo}. sastanak`:""}`,W-M,y+68+titleLines.length*43+8);ctx.textAlign="left";
-  y+=Math.max(logoH,titleLines.length*43+96)+20;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=30;
-  const attendanceRow=(label,value)=>{
+  ctx.textAlign="right";font(17,700);ctx.fillStyle=GREEN;ctx.fillText("ZAPISNIK",W-M,y+18);
+  const title=wrap(d.title||"Sastanak",520,31,700);drawLines(title,W-M,y+55,31,700,DARK,false,37);
+  font(17,400);ctx.fillStyle=MUTED;ctx.fillText(`${d.date||"—"}${meetingNo?` · ${meetingNo}. sastanak`:""}`,W-M,y+61+title.length*37);
+  ctx.textAlign="left";
+  y+=Math.max(logoH,82+title.length*37)+16;
+  ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=21;
+
+  const attendance=(label,value)=>{
    if(!value)return;
-   const labelText=label+":",labelSize=20,size=22,gap=10;
-   font(labelSize,700);const lw=ctx.measureText(labelText).width;
-   const normalized=String(value).split(/\n+/).map(s=>s.trim()).filter(Boolean).join(", ");
-   const lines=wrap(normalized,W-2*M-lw-gap,size,400),lh=25,h=Math.max(27,lines.length*lh+2);
-   ensure(h);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+22);
-   font(size,400);ctx.fillStyle=DARK;lines.forEach((l,i)=>ctx.fillText(l,M+lw+gap,y+22+i*lh));y+=h;
+   const norm=String(value).split(/\n+/).map(s=>s.trim()).filter(Boolean).join(", ");
+   font(17,700);const lt=label+":",lw=ctx.measureText(lt).width,gap=9;
+   const lines=wrap(norm,W-2*M-lw-gap,18,400),lh=22,h=Math.max(24,lines.length*lh+2);
+   font(17,700);ctx.fillStyle=GREEN;ctx.fillText(lt,M,y+18);
+   drawLines(lines,M+lw+gap,y+18,18,400,DARK,false,lh);y+=h;
   };
-  attendanceRow("Prisustvovali",present||"—");attendanceRow("Odsutni",absent);
-  if(extras.intro){section("Uvod");textBlock(extras.intro,M,W-2*M,25,400,DARK,false,8)}
+  attendance("Prisustvovali",present||"—");attendance("Odsutni",absent);
+  if(extras.intro){section("Uvod");const ls=wrap(extras.intro,W-2*M,18,400);y+=drawLines(ls,M,y,18,400,DARK,false,22)+4}
  };
- firstPage();
+
+ firstPageHeader();
 
  section("Dnevni red");
  d.agenda.forEach(a=>{
-  const numW=42,maxW=W-M-(M+numW),lines=wrap(a.title,maxW,22,400),h=lines.length*27+3;ensure(h);
-  font(22,700);ctx.fillStyle=GREEN;ctx.fillText(`${a.no}.`,M,y+21);
-  font(22,400);ctx.fillStyle=DARK;lines.forEach((l,i)=>ctx.fillText(l,M+numW,y+21+i*27));y+=h;
+  const numW=36,lines=wrap(a.title,W-2*M-numW,18,400),lh=22,h=lines.length*lh+1;ensure(h);
+  font(18,700);ctx.fillStyle=GREEN;ctx.fillText(`${a.no}.`,M,y+17);
+  drawLines(lines,M+numW,y+17,18,400,DARK,false,lh);y+=h;
  });
- y+=12;section("Obrada tačaka dnevnog reda");
+ y+=18;
+ section("Obrada tačaka dnevnog reda");
 
  for(const a of processedAgenda){
   const linkedActions=a.actions.map(actionById).filter(Boolean),linkedProjects=a.projects.map(projectById).filter(Boolean);
-  const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
+  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,19,700);
+  const estimated=titleLines.length*23+34+(a.conclusion?35:0)+(linkedActions.length?55:0)+(a.carry||a.transferredTo?28:0);
+  ensure(estimated);
+  drawLines(titleLines,M,y+18,19,700,DARK,false,23);y+=titleLines.length*23+4;
+
+  if(a.conclusion)inlineField("Zaključak",a.conclusion,{size:18});
+
+  linkedActions.forEach((x,i)=>{
+   const ref=`${a.no}.${i+1}`,label=`${ref} Akcija:`;
+   font(17,700);const lw=ctx.measureText(label).width,gap=8,bodyW=W-2*M-lw-gap;
+   const tl=wrap(x.title,bodyW,18,700),meta=[x.owner||"",x.due||""].filter(Boolean).join(" · "),ml=meta?wrap(meta,bodyW,16,700):[];
+   const dl=x.detail?wrap(x.detail,bodyW,16,400):[],h=tl.length*22+ml.length*19+dl.length*19+4;ensure(h+3);
+   font(17,700);ctx.fillStyle=GREEN;ctx.fillText(label,M,y+18);
+   let yy=y+18;yy+=drawLines(tl,M+lw+gap,yy,18,700,DARK,false,22);
+   if(ml.length)yy+=drawLines(ml,M+lw+gap,yy,16,700,MUTED,false,19);
+   if(dl.length)drawLines(dl,M+lw+gap,yy,16,400,MUTED,false,19);
+   y+=h;
+  });
+
+  linkedProjects.forEach((x,i)=>inlineField("Projekat",`${a.no}.${linkedActions.length+i+1} ${x.title}${x.due?` · Rok: ${x.due}`:""}${x.detail?`\n${x.detail}`:""}`,{size:17,weight:600}));
+
   let transfer="";
-  if(a.transferredTo)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`;
-  else if(a.carry)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`;
-  else if(unprocessed&&a.carryDecision==="Ne prenosi")transfer="Bez ishoda · nije preneseno";
-  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,19,700),titleH=titleLines.length*23+5;
-  ensure(titleH+30);y+=6;
-  font(19,700);ctx.fillStyle=DARK;titleLines.forEach((l,i)=>ctx.fillText(l,M,y+i*23));y+=titleLines.length*23+2;
-  if(a.conclusion)field("Zaključak",a.conclusion,{size:24});
-  if(linkedActions.length){
-   linkedActions.forEach((x,i)=>{
-    const ref=`${a.no}.${i+1}`,label=`${ref} Akcija`,labelSize=18,size=19,labelText=label+":",gap=8;
-    font(labelSize,700);const lw=ctx.measureText(labelText).width;
-    const bodyW=W-2*M-lw-gap,titleLines=wrap(x.title,bodyW,size,700);
-    const meta=[x.owner?x.owner:"",x.due?x.due:""].filter(Boolean).join(" · ");
-    const metaLines=meta?wrap(meta,bodyW,17,700):[],detailLines=x.detail?wrap(x.detail,bodyW,17,400):[];
-    const h=titleLines.length*23+metaLines.length*20+detailLines.length*20+7;ensure(h+2);
-    font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+20);
-    let yy=y+20;font(size,700);ctx.fillStyle=DARK;titleLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*23));yy+=titleLines.length*23;
-    if(metaLines.length){font(17,700);ctx.fillStyle=MUTED;metaLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*20));yy+=metaLines.length*20}
-    if(detailLines.length){font(17,400);ctx.fillStyle=MUTED;detailLines.forEach((l,j)=>ctx.fillText(l,M+lw+gap,yy+j*20));}
-    y+=h;
-   });
-  }
-  if(linkedProjects.length){
-   linkedProjects.forEach((x,i)=>field(i?"": "Projekat",`${a.no}.${linkedActions.length+i+1} ${x.title}${x.due?` · Rok: ${x.due}`:""}${x.detail?`\n${x.detail}`:""}`,{size:20,weight:600}));
-  }
-  if(transfer)field("Prenos",transfer,{size:17,italic:true,color:MUTED});
-  y+=2;
+  if(a.transferredTo)transfer=`Prenesena na sljedeći sastanak (${a.transferredTo}).`;
+  else if(a.carry)transfer="Prenosi se na sljedeći sastanak.";
+  else if(!a.conclusion&&!linkedActions.length&&!linkedProjects.length&&a.carryDecision==="Ne prenosi")transfer="Bez ishoda · nije preneseno";
+  if(transfer)inlineField("Prenos",transfer,{size:16,italic:true,color:MUTED});
+  y+=9;
  }
+
+ if(unconsideredAgenda.length || d.actions.length){
+  if(y>540)newPage();
+ }
+
  if(unconsideredAgenda.length){
   section("Tačke koje nijesu razmatrane i prenose se na sljedeći sastanak");
-  const col1=90,col2=W-2*M-col1,rowFont=18;
-  const headerH=36;ensure(headerH+46);ctx.fillStyle=GREEN;ctx.fillRect(M,y,W-2*M,headerH);
-  font(17,700);ctx.fillStyle="#ffffff";ctx.fillText("Tačka",M+12,y+24);ctx.fillText("Tema",M+col1+12,y+24);y+=headerH;
+  const col1=105,col2=W-2*M-col1,headH=36;
+  ensure(headH+44);ctx.fillStyle=GREEN;ctx.fillRect(M,y,W-2*M,headH);
+  font(16,700);ctx.fillStyle="#fff";ctx.fillText("Tačka",M+12,y+24);ctx.fillText("Tema",M+col1+12,y+24);y+=headH;
   unconsideredAgenda.forEach(a=>{
-   const ls=wrap(a.title,col2-24,rowFont,400),rh=Math.max(34,ls.length*22+10);ensure(rh);
+   const ls=wrap(a.title,col2-24,16,400),rh=Math.max(32,ls.length*20+10);ensure(rh);
    ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,W-2*M,rh);
-   font(17,700);ctx.fillStyle=DARK;ctx.fillText(String(a.no),M+30,y+23);
-   font(rowFont,400);ctx.fillStyle=DARK;ls.forEach((l,i)=>ctx.fillText(l,M+col1+12,y+22+i*22));y+=rh;
+   font(16,700);ctx.fillStyle=DARK;ctx.fillText(String(a.no),M+22,y+22);
+   drawLines(ls,M+col1+12,y+21,16,400,DARK,false,20);y+=rh;
   });
+  y+=20;
  }
+
  if(d.notes.length){
-  section("Beleške");d.notes.forEach(x=>{ensure(70);textBlock(`• ${x.title}${x.detail?`\n${x.detail}`:""}`,M,W-2*M,23,400,DARK,false,10)});
+  section("Beleške");
+  d.notes.forEach(x=>{const txt=`• ${x.title}${x.detail?`\n${x.detail}`:""}`,ls=wrap(txt,W-2*M,17,400);ensure(ls.length*21+8);drawLines(ls,M,y+18,17,400,DARK,false,21);y+=ls.length*21+8});
  }
+
  const unlinked=d.actions.filter(x=>!x.agendaId);
  if(unlinked.length){
-  section("Ostale akcije");unlinked.forEach(x=>field("Akcija",`${x.title}${x.owner?`\nOdgovoran: ${x.owner}`:""}${x.due?` · Rok: ${x.due}`:""}`,{size:22}));
+  section("Ostale akcije");
+  unlinked.forEach(x=>inlineField("Akcija",`${x.title}${x.owner?`\n${x.owner}`:""}${x.due?` · ${x.due}`:""}`,{size:17}));
  }
+
  if(d.actions.length){
   section("Pregled akcija");
-  const cols=[86,520,245,150],x0=M,headerH=42;
-  ensure(headerH+60);ctx.fillStyle=GREEN;ctx.fillRect(x0,y,W-2*M,headerH);
-  const heads=["Tačka","Akcija","Odgovoran","Rok"];let xx=x0;
-  heads.forEach((h,i)=>{font(18,700);ctx.fillStyle="#fff";ctx.fillText(h,xx+10,y+27);xx+=cols[i]});y+=headerH;
+  const cols=[82,498,238,114],heads=["Tačka","Akcija","Odgovoran","Rok"],headH=38;
+  ensure(headH+48);ctx.fillStyle=GREEN;ctx.fillRect(M,y,W-2*M,headH);
+  let xx=M;heads.forEach((h,i)=>{font(16,700);ctx.fillStyle="#fff";ctx.fillText(h,xx+9,y+25);xx+=cols[i]});y+=headH;
   d.actions.forEach(x=>{
    const a=d.agenda.find(z=>Number(z.id)===Number(x.agendaId)),ix=a?a.actions.findIndex(id=>Number(id)===Number(x.id)):-1,ref=a&&ix>=0?`${a.no}.${ix+1}`:"—";
-   const vals=[ref,x.title,x.owner||"—",x.due||"—"],lines=vals.map((v,i)=>wrap(v,cols[i]-20,17,i===0?700:400)),rh=Math.max(...lines.map(v=>v.length))*21+14;
-   ensure(rh);ctx.fillStyle=(Math.floor(y/10)%2?LIGHT:"#fff");ctx.fillRect(x0,y,W-2*M,rh);ctx.strokeStyle=LINE;ctx.strokeRect(x0,y,W-2*M,rh);
-   let cx=x0;lines.forEach((arr,i)=>{font(17,i===0?700:400);ctx.fillStyle=DARK;arr.forEach((l,j)=>ctx.fillText(l,cx+10,y+21+j*21));cx+=cols[i]});y+=rh;
+   const vals=[ref,x.title,x.owner||"—",x.due||"—"];
+   const lines=vals.map((v,i)=>wrap(v,cols[i]-18,15,i===0||i>=2?700:400)),rh=Math.max(...lines.map(v=>v.length))*19+12;
+   ensure(rh);ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,W-2*M,rh);
+   let cx=M;lines.forEach((arr,i)=>{drawLines(arr,cx+9,y+20,15,i===0||i>=2?700:400,DARK,false,19);cx+=cols[i]});y+=rh;
   });
  }
- if(extras.closing){section("Završna napomena");textBlock(extras.closing,M,W-2*M,24,400,DARK,false,8)}
 
- // Footers after final page count is known.
+ if(extras.closing){section("Završna napomena");const ls=wrap(extras.closing,W-2*M,18,400);ensure(ls.length*22+6);drawLines(ls,M,y+18,18,400,DARK,false,22);y+=ls.length*22+6}
+
  const total=pages.length;
- pages.forEach((c,i)=>{const cctx=c.getContext("2d");cctx.strokeStyle=LINE;cctx.lineWidth=1.2;cctx.beginPath();cctx.moveTo(M,H-48);cctx.lineTo(W-M,H-48);cctx.stroke();
-  cctx.font='18px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif';cctx.fillStyle=MUTED;cctx.textAlign="left";cctx.fillText("Obaveze",M,H-20);
-  cctx.textAlign="center";cctx.fillText(`Strana ${i+1}/${total}`,W/2,H-20);cctx.textAlign="right";cctx.fillText(`Generisano: ${generatedAt}`,W-M,H-20);cctx.textAlign="left";
+ pages.forEach((c,i)=>{
+  const cctx=c.getContext("2d");cctx.strokeStyle=LINE;cctx.lineWidth=1;cctx.beginPath();cctx.moveTo(M,H-49);cctx.lineTo(W-M,H-49);cctx.stroke();
+  cctx.font='14px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif';cctx.fillStyle=MUTED;
+  cctx.textAlign="left";cctx.fillText("Obaveze",M,H-24);
+  cctx.textAlign="center";cctx.fillText(`Strana ${i+1}/${total}`,W/2,H-24);
+  cctx.textAlign="right";cctx.fillText(`Generisano: ${generatedAt}`,W-M,H-24);cctx.textAlign="left";
  });
  const imgs=[];
  for(const c of pages){const url=c.toDataURL("image/jpeg",0.90);imgs.push({width:c.width,height:c.height,bytes:dataUrlBytes(url)})}
@@ -2336,7 +2354,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-44").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-45").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
