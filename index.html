@@ -391,7 +391,7 @@ nav button.on:after{
 
 
 /* Dashboard alignment: one common horizontal frame */
-.dashboardContent{width:100%;margin:0;padding:0 12px}
+.dashboardContent{width:100%;margin:0;padding:0 6px}
 .dashboardContent .areaTabs{width:max-content;max-width:100%;margin:12px auto 12px!important;padding-left:0;padding-right:0;justify-content:center}
 .dashboardContent .dashboardKpis{width:100%;margin-left:0;margin-right:0}
 .dashboardContent>.sectionHead{width:100%;margin-left:0;margin-right:0}
@@ -416,7 +416,7 @@ nav button.on:after{
   min-width:0;
 }
 @media (max-width:390px){
-  .dashboardContent{padding-left:10px;padding-right:10px}
+  .dashboardContent{padding-left:6px;padding-right:6px}
   .dashboardContent [data-dashboard-meeting].upcomingRow{
     grid-template-columns:48px minmax(0,1fr) auto;
     gap:8px;
@@ -1941,7 +1941,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-34").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-35").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
