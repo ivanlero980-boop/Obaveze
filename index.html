@@ -460,6 +460,7 @@ function norm(){
    if(x.Tip==="Akcija"&&!Array.isArray(x.OdgovorniIstorija))x.OdgovorniIstorija=[];
   }
   if(x.Tip==="Beleška"&&x.KolegijumID&&typeof x.AgendaStavka!=="boolean")x.AgendaStavka=true;
+  if(x.Tip==="Beleška"&&x.ZaSledeciSastanak===true)x.AgendaStavka=true;
   if(x.Tip==="Beleška"&&x.AgendaStavka===true){
    if(typeof x.Zakljucak!=="string")x.Zakljucak="";
    if(typeof x.PrenesiDalje!=="boolean")x.PrenesiDalje=false;
@@ -535,6 +536,7 @@ function activeActions(){return S.items.filter(x=>x.Tip==="Akcija"&&x.Status!=="
 function legacyProjects(){return S.items.filter(x=>x.Tip==="Projekat"&&x.Status!=="Završen")}
 function projectSeries(){return (S.meetingSeries||[]).filter(s=>s.Tip==="Projektna"&&s.Status!=="Završen")}
 function notes(){return S.items.filter(x=>x.Tip==="Beleška")}
+function realNotes(){return notes().filter(n=>n.AgendaStavka!==true&&n.ZaSledeciSastanak!==true)}
 function projectActions(p){
  return activeActions().filter(x=>Number(x.ProjectID)===Number(p.ID));
 }
@@ -607,7 +609,7 @@ function head(title,sub=""){
 function vPregled(){
  const actions=activeActions().filter(x=>(x.Oblast||"Poslovno")===dashboardArea&&(x.Odgovoran||"")==="Ivan");
  const ps=dashboardArea==="Poslovno"?projectSeries():[];
- const ns=notes().filter(x=>x.Status!=="Arhivirana"&&x.Status!=="Završeno"&&(x.Oblast||"Poslovno")===dashboardArea);
+ const ns=realNotes().filter(x=>x.Status!=="Arhivirana"&&x.Status!=="Završeno"&&(x.Oblast||"Poslovno")===dashboardArea);
  const overdue=actions.filter(x=>x.Rok&&daysTo(x.Rok)<0).sort(attentionSort);
  const dueToday=actions.filter(x=>x.Rok===today());
  const strategic=actions.filter(x=>x.Prioritet==="Strateško");
@@ -778,32 +780,14 @@ function vAkcije(){
  $("#view").querySelectorAll("[data-priority-filter]").forEach(b=>b.onclick=()=>{actionView.priority=b.dataset.priorityFilter;vAkcije()});
 }
 function vBeleske(){
- const ns=notes().filter(n=>n.Status!=="Arhivirana"&&n.Status!=="Završeno");
- const standalone=ns.filter(n=>!n.KolegijumID).slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
- const meetingNotes=ns.filter(n=>n.KolegijumID);
- const groups=[...new Set(meetingNotes.map(n=>Number(n.KolegijumID)).filter(Boolean))].map(id=>{
-  const m=meetingById(id);
-  const items=meetingNotes.filter(n=>Number(n.KolegijumID)===id).slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
-  const agendaCount=items.filter(n=>n.AgendaStavka).length,noteCount=items.filter(n=>!n.AgendaStavka).length;
-  return {id,m,items,agendaCount,noteCount,lastId:Math.max(...items.map(n=>Number(n.ID)||0))};
- }).sort((a,b)=>b.lastId-a.lastId);
- const tabs=`<div class="tabs">
-  <button class="btn ${notesView==="standalone"?"pri":""}" id="notesStandalone">Mimo sastanaka <span class="countBadge">${standalone.length}</span></button>
-  <button class="btn ${notesView==="meetings"?"pri":""}" id="notesMeetings">Po sastancima <span class="countBadge">${groups.length}</span></button>
- </div>`;
- const standaloneHTML=`<div class="list">${standalone.map(n=>{const ser=n.SerijaID?seriesById(n.SerijaID):null;return `<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${ser?`<span class="chip">${esc(ser.Naziv)}</span>`:""}${n.ZaSledeciSastanak?`<span class="chip">Za sljedeći sastanak</span>`:""}</div></div></div></div>`}).join("")||`<div class="empty">Nema aktivnih beleški mimo sastanaka.</div>`}</div>`;
- const meetingHTML=`<div class="list">${groups.map(g=>{
-   const m=g.m;
-   const series=m&&m.SerijaID?seriesById(m.SerijaID):null;
-   const label=m?(series?`${esc(series.Naziv)} · ${esc(fmtDate(m.Datum))}`:`${esc(m.Naslov||"Sastanak")} · ${esc(fmtDate(m.Datum||""))}`):"Sastanak";
-   const title="";
-   return `<div class="card noteCard" data-note-meeting="${g.id}"><div class="row between"><div class="grow"><div class="taskTitle">${label}</div>${title}<div class="sm mute" style="margin-top:5px">${g.agendaCount} agenda · ${g.noteCount} beleške</div></div><span>›</span></div></div>`;
-  }).join("")||`<div class="empty">Nema aktivnih beleški vezanih za sastanke.</div>`}</div>`;
- $("#view").innerHTML=head("Beleške",`${ns.length} aktivnih`)+tabs+(notesView==="meetings"?meetingHTML:standaloneHTML);
- $("#notesStandalone").onclick=()=>{notesView="standalone";vBeleske()};
- $("#notesMeetings").onclick=()=>{notesView="meetings";vBeleske()};
+ const ns=realNotes().filter(n=>n.Status!=="Arhivirana"&&n.Status!=="Završeno").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
+ const html=`<div class="list">${ns.map(n=>{
+   const ser=n.SerijaID?seriesById(n.SerijaID):null;
+   const m=n.KolegijumID?meetingById(n.KolegijumID):null;
+   return `<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${ser?`<span class="chip">${esc(ser.Naziv)}</span>`:""}${m?`<span class="chip">Sastanak · ${esc(fmtDate(m.Datum||""))}</span>`:""}</div></div></div></div>`;
+  }).join("")||`<div class="empty">Nema aktivnih beleški.</div>`}</div>`;
+ $("#view").innerHTML=head("Beleške",`${ns.length} aktivnih`)+html;
  $("#view").querySelectorAll("[data-note]").forEach(c=>c.onclick=()=>noteDialog(Number(c.dataset.note)));
- $("#view").querySelectorAll("[data-note-meeting]").forEach(c=>c.onclick=()=>meetingNotesDialog(Number(c.dataset.noteMeeting)));
 }
 function vProjekti(){
  const ps=projectSeries().slice().sort((a,b)=>daysTo(a.Rok)-daysTo(b.Rok)||(a.Naziv||"").localeCompare(b.Naziv||""));
@@ -988,7 +972,7 @@ function seriesDialog(id,options={}){
  if($("#seriesNewMeeting"))$("#seriesNewMeeting").onclick=()=>editMeeting({ID:0,Datum:today(),Naslov:"",Napomena:"",SerijaID:s.ID,Sistem:s.Sistem||"Osiguranje",Ucesnici:(s.Ucesnici||[]).slice()},true);
  if($("#seriesAddAction"))$("#seriesAddAction").onclick=()=>editItem(null,"Akcija",{SerijaID:s.ID,Oblast:"Poslovno",Sistem:s.Sistem||"Osiguranje"});
  if($("#seriesAddNote"))$("#seriesAddNote").onclick=()=>editItem(null,"Beleška",{SerijaID:s.ID,Oblast:"Poslovno"});
- if($("#seriesAddAgenda"))$("#seriesAddAgenda").onclick=()=>editItem(null,"Beleška",{SerijaID:s.ID,Oblast:"Poslovno",ZaSledeciSastanak:true});
+ if($("#seriesAddAgenda"))$("#seriesAddAgenda").onclick=()=>seriesAgendaEntry(s.ID);
  if($("#seriesFinish"))$("#seriesFinish").onclick=()=>{
   const count=seriesOpenActions(s.ID).length;
   const warning=count?` ${project?"Projekat":"Serija"} ima ${count} otvoren${count===1?"u akciju":"ih akcija"}.`:"";
@@ -1647,7 +1631,7 @@ function editItem(x=null,type="Akcija",preset={}){
  <label class="f"><span class="sm mute">${x.Tip==="Projekat"?"Naziv projekta":x.Tip==="Beleška"?"Beleška":"Šta treba uraditi?"}</span><textarea id="eTask" class="${x.Tip==="Beleška"?"noteInput":""}">${esc(x.Tip==="Projekat"?(x.Projekat||x.Zadatak):x.Zadatak||"")}</textarea></label>
  ${x.Tip!=="Projekat"&&!x.KolegijumID?`<label class="f"><span class="sm mute">Oblast</span><select id="eArea"><option value="Poslovno" ${(x.Oblast||"Poslovno")==="Poslovno"?"selected":""}>Poslovno</option><option value="Privatno" ${x.Oblast==="Privatno"?"selected":""}>Privatno</option></select></label>`:""}
  ${(x.Tip==="Akcija"||x.Tip==="Beleška")?`<label class="f" id="eSeriesWrap"><span class="sm mute">Serija / projekat</span><select id="eSeries"><option value="">Nije vezano</option>${itemSeries.map(s=>`<option value="${s.ID}" ${Number(x.SerijaID)===Number(s.ID)?"selected":""}>${esc(s.Naziv)}${s.Tip==="Projektna"?" · Projekat":""}</option>`).join("")}</select></label>`:""}
- ${x.Tip==="Beleška"?`<label class="f" id="eMeetingWrap"><span class="sm mute">Za sastanak</span><select id="eMeeting"><option value="">Nije vezana</option>${noteMeetingChoices.map(m=>`<option value="${m.ID}" ${Number(x.KolegijumID)===Number(m.ID)?"selected":""}>${m.Datum===today()?"Danas · ":""}${m.SerijaID&&seriesById(m.SerijaID)?`${esc(seriesById(m.SerijaID).Naziv)} · `:"Sastanak · "}${esc(fmtDate(m.Datum))}${!m.SerijaID&&m.Naslov?` · ${esc(m.Naslov)}`:""}</option>`).join("")}</select></label><label class="card tight" id="eNextMeetingWrap" style="display:flex;gap:10px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="eNextMeeting" ${x.ZaSledeciSastanak?"checked":""} style="width:auto;margin-top:3px"><span><b>Za sljedeći sastanak</b><div class="sm mute">Tema čeka naredni termin izabrane serije.</div></span></label>`:""}
+
  ${x.Tip==="Akcija"?`<div class="row"><label class="f grow"><span class="sm mute">Odgovoran *</span><input id="eOwner" value="${esc(x.Odgovoran||"Ivan")}" ${isNew?"":"readonly"}></label><label class="f grow"><span class="sm mute">Rok *</span><input type="date" id="eDue" value="${esc(x.Rok||"")}" ${isNew?"":"readonly"}></label></div>${!isNew?`<div class="sm mute" style="margin-top:-4px">Odgovorni i rok se mijenjaju iz detalja akcije, uz čuvanje istorije.</div>`:""}`:""}
  ${x.Tip==="Projekat"?`<label class="f"><span class="sm mute">Rok projekta *</span><input type="date" id="eProjectDue" value="${esc(x.Rok||"")}" ${isNew?"":"readonly"}></label>${!isNew?`<div class="sm mute" style="margin-top:-4px">Rok se pomjera iz detalja projekta, uz obavezan razlog i istoriju.</div>`:""}
  <label class="f"><span class="sm mute">Sistem</span><select id="eProjectSystem">${["Osiguranje","Tehnički","Zajedničko"].map(v=>`<option value="${v}" ${(x.Sistem||"Osiguranje")===v?"selected":""}>${v}</option>`).join("")}</select></label>
@@ -1720,11 +1704,9 @@ function editItem(x=null,type="Akcija",preset={}){
   }
   if(x.Tip==="Beleška"){
    x.Status="Aktivna";x.Odgovoran="";x.Rok="";x.Projekat="";x.ProjectID=null;x.Prioritet="";x.Sistem="";x.Izvor="";x["Detalj izvora"]="";x["Detalji dogovora"]="";x.Napomena="";
-   if($("#eMeeting")){
-    const mid=Number($("#eMeeting").value)||null;
-    if(mid){x.KolegijumID=mid;x.SerijaID=meetingById(mid)?.SerijaID||null;if(typeof x.AgendaStavka!=="boolean")x.AgendaStavka=true;x.ZaSledeciSastanak=false;}
-    else{x.KolegijumID=null;x.SerijaID=Number($("#eSeries")?.value)||null;x.ZaSledeciSastanak=!!($("#eNextMeeting")?.checked&&x.SerijaID);if(x.ZaSledeciSastanak){x.AgendaStavka=false}else delete x.AgendaStavka;}
-   }else if(x.KolegijumID){x.SerijaID=meetingById(x.KolegijumID)?.SerijaID||x.SerijaID||null;x.ZaSledeciSastanak=false;}
+   if(x.KolegijumID)x.SerijaID=meetingById(x.KolegijumID)?.SerijaID||x.SerijaID||null;
+   else x.SerijaID=Number($("#eSeries")?.value)||null;
+   x.ZaSledeciSastanak=false;x.AgendaStavka=false;
   }
   if(x.Tip==="Projekat")x.Status=x.Status==="Završen"?"Završen":"Aktivan";
   if((x.Tip==="Akcija"||x.Tip==="Projekat")&&x._fromNoteId){
@@ -1765,7 +1747,31 @@ function quickSeriesAgenda(){
  const ss=(S.meetingSeries||[]).filter(s=>s.Status!=="Završen").slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
  openDlg(`<div class="row between"><div><h2>Za sljedeći sastanak</h2><div class="sm mute">Izaberi seriju</div></div><button class="btn" id="qsc">×</button></div><div class="list" style="margin-top:12px">${ss.map(s=>`<button class="card tight" data-qs="${s.ID}"><div class="row between"><div><b>${esc(s.Naziv)}</b><div class="sm mute">${s.Tip==="Projektna"?"Projekat":"Redovna serija"}</div></div><span>›</span></div></button>`).join("")}</div>`);
  $("#qsc").onclick=closeDlg;
- $("#dlgBody").querySelectorAll("[data-qs]").forEach(b=>b.onclick=()=>{const sid=Number(b.dataset.qs);closeDlg();editItem(null,"Beleška",{SerijaID:sid,Oblast:"Poslovno",ZaSledeciSastanak:true})});
+ $("#dlgBody").querySelectorAll("[data-qs]").forEach(b=>b.onclick=()=>{const sid=Number(b.dataset.qs);closeDlg();seriesAgendaEntry(sid)});
+}
+function seriesAgendaEntry(seriesId,prefill=""){
+ const s=seriesById(seriesId);if(!s)return;
+ openDlg(`<h2>Za sljedeći sastanak</h2><div class="sm mute">${esc(s.Naziv)}</div>
+  <label class="f"><span class="sm mute">Tema agende</span><textarea id="seriesAgendaText" class="noteInput">${esc(prefill)}</textarea></label>
+  <div class="btnrow"><button class="btn pri grow" id="seriesAgendaSave">Sačuvaj</button><button class="btn grow" id="seriesAgendaCancel">Otkaži</button></div>`);
+ $("#seriesAgendaCancel").onclick=closeDlg;
+ $("#seriesAgendaSave").onclick=()=>{
+  const task=$("#seriesAgendaText").value.trim();if(!task){alert("Unesi temu za sljedeći sastanak.");return}
+  S.items.push({ID:++S.lastId,Tip:"Beleška",Status:"Aktivna",Zadatak:task,Oblast:"Poslovno",KolegijumID:null,SerijaID:s.ID,Odgovoran:"",Rok:"",Projekat:"",ProjectID:null,Prioritet:"",Sistem:"",Izvor:"","Detalj izvora":"","Detalji dogovora":"",Napomena:"",AgendaStavka:true,ZaSledeciSastanak:true,Zakljucak:"",PrenesiDalje:false});
+  save();norm();closeDlg();render();
+ };
+}
+function noteToAgendaDialog(noteId){
+ const n=S.items.find(x=>x.ID===noteId&&x.Tip==="Beleška");if(!n)return;
+ const ss=(S.meetingSeries||[]).filter(s=>s.Status!=="Završen").slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
+ const ms=(S.meetings||[]).filter(m=>m.Status!=="Završen"&&m.Datum>=today()).slice().sort((a,b)=>(a.Datum||"").localeCompare(b.Datum||""));
+ navOpen(`<div class="row between"><div><h2>Dodaj u Agendu</h2><div class="sm mute">Originalna beleška ostaje sačuvana.</div></div><button class="btn" id="ntaClose">×</button></div>
+  ${ss.length?`<div class="sectionHead" style="margin-top:14px"><h2>Za sljedeći sastanak</h2></div><div class="list">${ss.map(s=>`<button class="card tight" data-nta-series="${s.ID}"><div class="row between"><b>${esc(s.Naziv)}</b><span>›</span></div></button>`).join("")}</div>`:""}
+  ${ms.length?`<div class="sectionHead"><h2>Konkretan sastanak</h2></div><div class="list">${ms.map(m=>`<button class="card tight" data-nta-meeting="${m.ID}"><div class="row between"><b>${esc(meetingHeadingText(m))} · ${esc(fmtDate(m.Datum))}</b><span>›</span></div></button>`).join("")}</div>`:""}`,
+  `noteAgenda:${noteId}`,{dedupe:false});
+ $("#ntaClose").onclick=navBack;
+ $("#dlgBody").querySelectorAll("[data-nta-series]").forEach(b=>b.onclick=()=>{const sid=Number(b.dataset.ntaSeries);navBack();seriesAgendaEntry(sid,n.Zadatak)});
+ $("#dlgBody").querySelectorAll("[data-nta-meeting]").forEach(b=>b.onclick=()=>{const m=meetingById(Number(b.dataset.ntaMeeting));if(!m)return;S.items.push({ID:++S.lastId,Tip:"Beleška",Status:"Aktivna",Zadatak:n.Zadatak,Oblast:"Poslovno",KolegijumID:m.ID,SerijaID:m.SerijaID||null,Odgovoran:"",Rok:"",Projekat:"",ProjectID:null,Prioritet:"",Sistem:"",Izvor:"","Detalj izvora":"","Detalji dogovora":"",Napomena:"",AgendaStavka:true,Zakljucak:"",PrenesiDalje:false,ZaSledeciSastanak:false});save();norm();render();navBack({type:"changed",kind:"Agenda",id:n.ID})});
 }
 function quickMeetingNote(meetings){
  openDlg(`<div class="row between"><div><h2>Za sastanak</h2><div class="sm mute">Izaberi termin</div></div><button class="btn" id="qmc">×</button></div>
@@ -1776,7 +1782,7 @@ function quickMeetingNote(meetings){
 function quickMeetingNoteEntry(id){
  const m=meetingById(id);if(!m)return;
  openDlg(`<h2>Za sastanak · ${esc(fmtDate(m.Datum))}</h2>
-  <label class="f"><span class="sm mute">Tema / beleška</span><textarea id="quickMeetingText" class="noteInput"></textarea></label>
+  <label class="f"><span class="sm mute">Tema agende</span><textarea id="quickMeetingText" class="noteInput"></textarea></label>
   <div class="btnrow"><button class="btn pri grow" id="quickMeetingSave">Sačuvaj</button><button class="btn grow" id="quickMeetingCancel">Otkaži</button></div>`);
  $("#quickMeetingCancel").onclick=closeDlg;
  $("#quickMeetingSave").onclick=()=>{
@@ -1797,6 +1803,15 @@ function meetingNotesDialog(meetingId){
  $("#meetingNotesClose").onclick=navBack;
  $("#dlgBody").querySelectorAll("[data-group-note]").forEach(c=>c.onclick=()=>noteDialog(Number(c.dataset.groupNote)));
 }
+function editAgendaTextDialog(noteId){
+ const n=S.items.find(x=>x.ID===noteId&&x.Tip==="Beleška"&&x.AgendaStavka===true);if(!n)return;
+ navOpen(`<div class="row between"><h2>Uredi temu agende</h2><button class="btn" id="aetClose">×</button></div>
+  <label class="f"><span class="sm mute">Tema</span><textarea id="aetText" class="noteInput">${esc(n.Zadatak||"")}</textarea></label>
+  <div class="btnrow"><button class="btn pri grow" id="aetSave">Sačuvaj</button><button class="btn grow" id="aetCancel">Otkaži</button></div>`,
+  `agendaText:${noteId}`,{dedupe:false});
+ $("#aetClose").onclick=navBack;$("#aetCancel").onclick=navBack;
+ $("#aetSave").onclick=()=>{const v=$("#aetText").value.trim();if(!v){alert("Unesi temu agende.");return}n.Zadatak=v;save();norm();render();navBack({type:"changed",kind:"Agenda",id:n.ID})};
+}
 function agendaOutcomeDialog(noteId){
  const n=S.items.find(x=>x.ID===noteId);if(!n||!n.AgendaStavka){navBack();return}
  navOpen(`<div class="row between"><div><h2>Ishod teme</h2><div class="sm mute">${esc(n.Zadatak)}</div></div><button class="btn" id="aoClose">×</button></div>
@@ -1810,15 +1825,16 @@ function agendaOutcomeDialog(noteId){
 }
 function noteDialog(id){
  const n=S.items.find(x=>x.ID===id);if(!n||n.Status==="Arhivirana"){navBack();return}
- const isAgenda=!!(n.KolegijumID&&n.AgendaStavka),related=isAgenda?agendaRelatedItems(n.ID):[];
+ const isAgenda=n.AgendaStavka===true,isMeetingAgenda=!!(isAgenda&&n.KolegijumID),related=isMeetingAgenda?agendaRelatedItems(n.ID):[];
  const relActions=related.filter(x=>x.Tip==="Akcija"),relProjects=related.filter(x=>x.Tip==="Projekat");
  navOpen(`<div class="row between"><h2>${isAgenda?"Stavka agende":"Beleška"}</h2><button class="btn" id="noteClose">×</button></div><div class="noteFull">${esc(n.Zadatak)}</div><div class="meta" style="margin-top:10px"><span class="chip">${isAgenda?"Agenda":esc(n.Oblast||"Poslovno")}</span>${n.KolegijumID?`<span class="chip">${meetingById(n.KolegijumID)?.SerijaID&&seriesById(meetingById(n.KolegijumID).SerijaID)?`${esc(seriesById(meetingById(n.KolegijumID).SerijaID).Naziv)} · ${esc(fmtDate(meetingById(n.KolegijumID).Datum))}`:`Sastanak · ${esc(fmtDate(meetingById(n.KolegijumID)?.Datum||""))}`}</span>`:(n.SerijaID&&seriesById(n.SerijaID)?`<span class="chip">${esc(seriesById(n.SerijaID).Naziv)}${n.ZaSledeciSastanak?" · Za sljedeći sastanak":""}</span>`:"")}</div>
- ${isAgenda?`<div class="card tight" style="margin-top:14px"><div class="sm mute">Zaključak</div><div style="margin-top:4px">${n.Zakljucak?esc(n.Zakljucak):`<span class="mute">Nije unesen.</span>`}</div><div class="agendaMeta">${n.PrenesiDalje?`<span class="chip">Prenesi dalje</span>`:""}${n.PrenesenoNaSastanakID?`<span class="chip">Preneseno · ${esc(fmtDate(meetingById(n.PrenesenoNaSastanakID)?.Datum||""))}</span>`:""}${relActions.length?`<span class="chip">${relActions.length} ${relActions.length===1?"akcija":"akcije"}</span>`:""}${relProjects.length?`<span class="chip">${relProjects.length} ${relProjects.length===1?"projekat":"projekta"}</span>`:""}</div></div>`:""}
- <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="noteEdit">Uredi</button>${isAgenda?`<button class="btn pri grow" id="noteOutcome">Zaključak / prenos</button>`:""}<button class="btn pri grow" id="noteConvert">→ Akcija</button><button class="btn grow" id="noteConvertProject">→ Projekat</button></div>
+ ${isMeetingAgenda?`<div class="card tight" style="margin-top:14px"><div class="sm mute">Zaključak</div><div style="margin-top:4px">${n.Zakljucak?esc(n.Zakljucak):`<span class="mute">Nije unesen.</span>`}</div><div class="agendaMeta">${n.PrenesiDalje?`<span class="chip">Prenesi dalje</span>`:""}${n.PrenesenoNaSastanakID?`<span class="chip">Preneseno · ${esc(fmtDate(meetingById(n.PrenesenoNaSastanakID)?.Datum||""))}</span>`:""}${relActions.length?`<span class="chip">${relActions.length} ${relActions.length===1?"akcija":"akcije"}</span>`:""}${relProjects.length?`<span class="chip">${relProjects.length} ${relProjects.length===1?"projekat":"projekta"}</span>`:""}</div></div>`:""}
+ <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="noteEdit">Uredi</button>${isMeetingAgenda?`<button class="btn pri grow" id="noteOutcome">Zaključak / prenos</button>`:!isAgenda?`<button class="btn grow" id="noteToAgenda">→ Agenda</button>`:""}<button class="btn pri grow" id="noteConvert">→ Akcija</button><button class="btn grow" id="noteConvertProject">→ Projekat</button></div>
  <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="noteShare">Podijeli</button><button class="btn grow" id="noteArchive">Arhiviraj</button><button class="btn danger grow" id="noteDelete">Obriši</button></div>`,
  `note:${id}`,{refresh:()=>noteDialog(id)});
- $("#noteClose").onclick=navBack;$("#noteEdit").onclick=()=>editItem(n,"Beleška");
+ $("#noteClose").onclick=navBack;$("#noteEdit").onclick=()=>isAgenda?editAgendaTextDialog(n.ID):editItem(n,"Beleška");
  if($("#noteOutcome"))$("#noteOutcome").onclick=()=>agendaOutcomeDialog(n.ID);
+ if($("#noteToAgenda"))$("#noteToAgenda").onclick=()=>noteToAgendaDialog(n.ID);
  $("#noteConvert").onclick=()=>editItem(null,"Akcija",{Zadatak:n.Zadatak,Oblast:n.Oblast||"Poslovno",KolegijumID:n.KolegijumID||null,SerijaID:n.KolegijumID?null:(n.SerijaID||null),_fromNoteId:n.ID,AgendaIzvorID:isAgenda?n.ID:null});
  $("#noteConvertProject").onclick=()=>editSeries(null,false,{Tip:"Projektna",Naziv:n.Zadatak});
  $("#noteShare").onclick=()=>shareText(isAgenda?"Stavka agende":"Beleška",itemShareText(n));
@@ -1925,7 +1941,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-32").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-33").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
