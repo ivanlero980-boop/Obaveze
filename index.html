@@ -445,14 +445,14 @@ nav button.on:after{
 .proAgendaList{display:grid;gap:5px}
 .proAgendaList>div{display:grid;grid-template-columns:24px 1fr;line-height:1.35}
 .proAgendaList b{color:#00885a}
-.proTopic{border-top:1px solid #00885a;padding-top:10px;margin-top:14px}
+.proTopic{border-top:1px solid #cfdad4;padding-top:6px;margin-top:8px}
 .proTopicHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px}
-.proTopicHead b{font-size:15px}
-.proField{display:grid;grid-template-columns:92px 1fr;border-top:1px solid #e2e8e4;font-size:13px;line-height:1.42}
+.proTopicHead b{font-size:13px}
+.proField{display:grid;grid-template-columns:82px 1fr;border-top:1px solid #e2e8e4;font-size:12px;line-height:1.35}
 .proField:last-child{border-bottom:1px solid #e2e8e4}
-.proLabel{font-weight:800;color:#00885a;padding:8px 8px 8px 0}
-.proField>div:last-child{padding:8px 0 8px 8px;border-left:1px solid #e2e8e4}
-.proOutcome{padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed #e2e8e4}
+.proLabel{font-weight:800;color:#00885a;padding:5px 6px 5px 0}
+.proField>div:last-child{padding:5px 0 5px 7px;border-left:1px solid #e2e8e4}
+.proOutcome{padding-bottom:5px;margin-bottom:5px;border-bottom:1px dashed #e2e8e4}
 .proOutcome:last-child{padding-bottom:0;margin-bottom:0;border-bottom:0}
 .proActionTableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .proActionTable{width:100%;border-collapse:collapse;font-size:12px;min-width:620px}
@@ -466,6 +466,13 @@ nav button.on:after{
  .proPeople{grid-template-columns:1fr}
  .proField{grid-template-columns:76px 1fr}
 }
+
+
+.proCarryTableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.proCarryTable{width:100%;border-collapse:collapse;font-size:12px}
+.proCarryTable th{background:#f0f5f2;color:#00885a;text-align:left;padding:7px;border:1px solid #dbe3de}
+.proCarryTable td{padding:7px;border:1px solid #dbe3de;vertical-align:top}
+.proCarryTable th:first-child,.proCarryTable td:first-child{width:58px;text-align:center}
 
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
@@ -1149,9 +1156,19 @@ function readMinutesExtras(){
 function minutesPlainText(d,extras={},generatedAt=minutesGeneratedAt()){
  const actionById=id=>d.actions.find(x=>Number(x.id)===Number(id));
  const projectById=id=>d.projects.find(x=>Number(x.id)===Number(id));
+ const unconsideredAgenda=d.agenda.filter(a=>{
+  const acts=a.actions.map(actionById).filter(Boolean),projs=a.projects.map(projectById).filter(Boolean);
+  return !a.conclusion&&!acts.length&&!projs.length&&(a.carry||a.transferredTo);
+ });
+ const processedAgenda=d.agenda.filter(a=>!unconsideredAgenda.some(u=>Number(u.id)===Number(a.id)));
  const meetingNo=(extras.meetingNo||d.meetingNo||"").toString().trim();
  const present=extras.present!==undefined?extras.present:d.participants;
  const absent=extras.absent||"";
+ const unconsidered=d.agenda.filter(a=>{
+  const acts=a.actions.map(actionById).filter(Boolean),projs=a.projects.map(projectById).filter(Boolean);
+  return !a.conclusion&&!acts.length&&!projs.length&&(a.carry||a.transferredTo);
+ });
+ const processed=d.agenda.filter(a=>!unconsidered.some(u=>Number(u.id)===Number(a.id)));
  let out=`ZAPISNIK\n${d.title||"Sastanak"}`;
  if(meetingNo)out+=`\n${meetingNo}. sastanak`;
  out+=`\nDatum: ${d.date||"—"}\nPrisustvovali: ${present||"—"}`;
@@ -1161,39 +1178,31 @@ function minutesPlainText(d,extras={},generatedAt=minutesGeneratedAt()){
   out+=`\n\nDNEVNI RED`;
   d.agenda.forEach(a=>{out+=`\n${a.no}. ${a.title}${a.archived?" [Arhivirana]":""}`});
  }
- d.agenda.forEach(a=>{
+ processed.forEach(a=>{
   const linkedActions=a.actions.map(actionById).filter(Boolean);
   const linkedProjects=a.projects.map(projectById).filter(Boolean);
   out+=`\n\n${a.no}. ${a.title}${a.archived?" [Arhivirana]":""}`;
-  if(a.conclusion)out+=`\nZaključak:\n${a.conclusion}`;
-  if(linkedActions.length){
-   out+=`\nAkcije:`;
-   linkedActions.forEach((x,i)=>{
-    out+=`\n${a.no}.${i+1} ${x.title}`;
+  if(a.conclusion)out+=`\nZaključak: ${a.conclusion}`;
+  linkedActions.forEach((x,i)=>{
+    out+=`\nAkcija ${a.no}.${i+1}: ${x.title}`;
     if(x.owner)out+=`\nOdgovoran: ${x.owner}`;
     if(x.due)out+=`\nRok: ${x.due}`;
     if(x.detail)out+=`\n${x.detail}`;
-   });
-  }
-  if(linkedProjects.length){
-   out+=`\nProjekti:`;
-   linkedProjects.forEach((x,i)=>{
+  });
+  linkedProjects.forEach((x,i)=>{
     const ref=`${a.no}.${linkedActions.length+i+1}`;
-    out+=`\n${ref} ${x.title}`;
+    out+=`\nProjekat ${ref}: ${x.title}`;
     if(x.due)out+=`\nRok: ${x.due}`;
     if(x.detail)out+=`\n${x.detail}`;
-   });
-  }
-  if(a.transferredTo){
-   const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
-   out+=`\nPrenos:\n${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`;
-  }else if(a.carry){
-   const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
-   out+=`\nPrenos:\n${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`;
-  }else if(!a.conclusion&&!linkedActions.length&&!linkedProjects.length&&a.carryDecision==="Ne prenosi"){
-   out+=`\nBez ishoda · nije preneseno`;
-  }
+  });
+  if(a.transferredTo)out+=`\nPrenos: Prenesena na sljedeći sastanak (${a.transferredTo}).`;
+  else if(a.carry)out+=`\nPrenos: Prenosi se na sljedeći sastanak.`;
+  else if(!a.conclusion&&!linkedActions.length&&!linkedProjects.length&&a.carryDecision==="Ne prenosi")out+=`\nBez ishoda · nije preneseno`;
  });
+ if(unconsidered.length){
+  out+=`\n\nTAČKE KOJE NIJESU RAZMATRANE I PRENOSE SE NA SLJEDEĆI SASTANAK`;
+  unconsidered.forEach(a=>{out+=`\n${a.no}. ${a.title}`});
+ }
  if(d.notes.length){
   out+=`\n\nBELEŠKE`;
   d.notes.forEach(x=>{out+=`\n• ${x.title}${x.detail?`\n  ${x.detail}`:""}`});
@@ -1231,8 +1240,8 @@ function minutesPrintHTML(d,extras={},generatedAt=minutesGeneratedAt(),documentT
   const linkedProjects=a.projects.map(projectById).filter(Boolean);
   const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
   let transfer="";
-  if(a.transferredTo)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`;
-  else if(a.carry)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`;
+  if(a.transferredTo)transfer=`Prenesena na sljedeći sastanak (${a.transferredTo}).`;
+  else if(a.carry)transfer=`Prenosi se na sljedeći sastanak.`;
   else if(unprocessed&&a.carryDecision==="Ne prenosi")transfer="Bez ishoda · nije preneseno";
 
   const actions=linkedActions.map((x,i)=>`<div class="actionItem">
@@ -1398,15 +1407,15 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   }
  };
  const ensure=h=>{if(y+h>BOTTOM)newPage(true)};
- const section=title=>{ensure(74);y+=22;font(30,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y);y+=18;ctx.strokeStyle=LINE;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=28};
+ const section=title=>{ensure(58);y+=14;font(26,700);ctx.fillStyle=GREEN;ctx.fillText(title,M,y);y+=13;ctx.strokeStyle=LINE;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=20};
  const field=(label,value,opts={})=>{
   if(!value)return;
-  const labelW=158,valX=M+labelW+18,maxW=W-M-valX;
-  const size=opts.size||25,lines=wrap(value,maxW,size,opts.weight||400,opts.italic||false),h=Math.max(50,lines.length*lineHeight(size)+22);
+  const labelW=142,valX=M+labelW+14,maxW=W-M-valX;
+  const size=opts.size||22,lines=wrap(value,maxW,size,opts.weight||400,opts.italic||false),h=Math.max(42,lines.length*lineHeight(size)+14);
   ensure(h+4);ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();
-  font(22,700);ctx.fillStyle=GREEN;ctx.fillText(label,M,y+32);
+  font(20,700);ctx.fillStyle=GREEN;ctx.fillText(label,M,y+27);
   font(size,opts.weight||400,opts.italic||false);ctx.fillStyle=opts.color||DARK;
-  lines.forEach((l,i)=>ctx.fillText(l,valX,y+30+i*lineHeight(size)));y+=h;
+  lines.forEach((l,i)=>ctx.fillText(l,valX,y+26+i*lineHeight(size)));y+=h;
  };
  const firstPage=()=>{
   newPage(false);
@@ -1429,37 +1438,49 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
  });
  section("Obrada tačaka dnevnog reda");
 
- for(const a of d.agenda){
+ for(const a of processedAgenda){
   const linkedActions=a.actions.map(actionById).filter(Boolean),linkedProjects=a.projects.map(projectById).filter(Boolean);
   const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
   let transfer="";
   if(a.transferredTo)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`;
   else if(a.carry)transfer=`${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`;
   else if(unprocessed&&a.carryDecision==="Ne prenosi")transfer="Bez ishoda · nije preneseno";
-  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,28,700),titleH=titleLines.length*36+28;
-  ensure(titleH+60);y+=14;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=34;
-  font(28,700);ctx.fillStyle=DARK;titleLines.forEach((l,i)=>ctx.fillText(l,M,y+i*36));y+=titleLines.length*36+10;
+  const titleLines=wrap(`${a.no}. ${a.title}${a.archived?" · Arhivirana":""}`,W-2*M,24,700),titleH=titleLines.length*31+18;
+  ensure(titleH+44);y+=7;ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=24;
+  font(24,700);ctx.fillStyle=DARK;titleLines.forEach((l,i)=>ctx.fillText(l,M,y+i*31));y+=titleLines.length*31+5;
   if(a.conclusion)field("Zaključak",a.conclusion,{size:24});
   if(linkedActions.length){
-   const labelW=158,valX=M+labelW+18,maxW=W-M-valX;
+   const labelW=142,valX=M+labelW+14,maxW=W-M-valX;
    let total=0,parts=[];
    linkedActions.forEach((x,i)=>{
-    const title=`${a.no}.${i+1} ${x.title}`,tl=wrap(title,maxW,24,700),meta=[x.owner?`Odgovoran: ${x.owner}`:"",x.due?`Rok: ${x.due}`:""].filter(Boolean).join("   ·   "),ml=meta?wrap(meta,maxW,20,500):[],dl=x.detail?wrap(x.detail,maxW,20,400):[];
-    const h=tl.length*31+ml.length*26+dl.length*26+14;parts.push({x,tl,ml,dl,h});total+=h;
+    const title=`${a.no}.${i+1} ${x.title}`,tl=wrap(title,maxW,21,700),meta=[x.owner?`Odgovoran: ${x.owner}`:"",x.due?`Rok: ${x.due}`:""].filter(Boolean).join(" · "),ml=meta?wrap(meta,maxW,18,500):[],dl=x.detail?wrap(x.detail,maxW,18,400):[];
+    const h=tl.length*27+ml.length*23+dl.length*23+8;parts.push({x,tl,ml,dl,h});total+=h;
    });
    const h=Math.max(50,total+18);ensure(h+4);ctx.strokeStyle=LINE;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();
-   font(22,700);ctx.fillStyle=GREEN;ctx.fillText("Akcije",M,y+32);let yy=y+28;
-   parts.forEach(p=>{font(24,700);ctx.fillStyle=DARK;p.tl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*31));yy+=p.tl.length*31;
-    if(p.ml.length){font(20,500);ctx.fillStyle=MUTED;p.ml.forEach((l,i)=>ctx.fillText(l,valX,yy+i*26));yy+=p.ml.length*26}
-    if(p.dl.length){font(20,400);ctx.fillStyle=MUTED;p.dl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*26));yy+=p.dl.length*26}
-    yy+=14;
+   font(20,700);ctx.fillStyle=GREEN;ctx.fillText("Akcije",M,y+27);let yy=y+24;
+   parts.forEach(p=>{font(21,700);ctx.fillStyle=DARK;p.tl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*27));yy+=p.tl.length*27;
+    if(p.ml.length){font(18,500);ctx.fillStyle=MUTED;p.ml.forEach((l,i)=>ctx.fillText(l,valX,yy+i*23));yy+=p.ml.length*23}
+    if(p.dl.length){font(18,400);ctx.fillStyle=MUTED;p.dl.forEach((l,i)=>ctx.fillText(l,valX,yy+i*23));yy+=p.dl.length*23}
+    yy+=8;
    });y+=h;
   }
   if(linkedProjects.length){
    linkedProjects.forEach((x,i)=>field(i?"": "Projekat",`${a.no}.${linkedActions.length+i+1} ${x.title}${x.due?` · Rok: ${x.due}`:""}${x.detail?`\n${x.detail}`:""}`,{size:23,weight:600}));
   }
   if(transfer)field("Prenos",transfer,{size:22,italic:true,color:MUTED});
-  y+=12;
+  y+=5;
+ }
+ if(unconsideredAgenda.length){
+  section("Tačke koje nijesu razmatrane i prenose se na sljedeći sastanak");
+  const col1=90,col2=W-2*M-col1,rowFont=19;
+  const headerH=40;ensure(headerH+50);ctx.fillStyle=LIGHT;ctx.fillRect(M,y,W-2*M,headerH);
+  font(18,700);ctx.fillStyle=GREEN;ctx.fillText("Tačka",M+12,y+26);ctx.fillText("Tema",M+col1+12,y+26);y+=headerH;
+  unconsideredAgenda.forEach(a=>{
+   const ls=wrap(a.title,col2-24,rowFont,400),rh=Math.max(38,ls.length*24+14);ensure(rh);
+   ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,W-2*M,rh);
+   font(18,700);ctx.fillStyle=DARK;ctx.fillText(String(a.no),M+30,y+25);
+   font(rowFont,400);ctx.fillStyle=DARK;ls.forEach((l,i)=>ctx.fillText(l,M+col1+12,y+24+i*24));y+=rh;
+  });
  }
  if(d.notes.length){
   section("Beleške");d.notes.forEach(x=>{ensure(70);textBlock(`• ${x.title}${x.detail?`\n${x.detail}`:""}`,M,W-2*M,23,400,DARK,false,10)});
@@ -1521,10 +1542,14 @@ function meetingMinutesDialog(meetingId,tempExtras=null){
 
  const agendaList=d.agenda.length?`<div class="proAgendaList">${d.agenda.map(a=>`<div><b>${a.no}.</b> ${esc(a.title)}${a.archived?` <span class="minutesRecordMeta">· Arhivirana</span>`:""}</div>`).join("")}</div>`:`<div class="empty">Nema stavki dnevnog reda.</div>`;
 
- const topics=d.agenda.length?d.agenda.map(a=>{
+ const unconsideredAgenda=d.agenda.filter(a=>{
   const linkedActions=a.actions.map(actionById).filter(Boolean),linkedProjects=a.projects.map(projectById).filter(Boolean);
-  const unprocessed=!a.conclusion&&!linkedActions.length&&!linkedProjects.length;
-  const transfer=a.transferredTo?`${unprocessed?"Nije razmatrana. ":""}Prenesena na sljedeći sastanak (${a.transferredTo}).`:a.carry?`${unprocessed?"Nije razmatrana. ":""}Prenosi se na sljedeći sastanak.`:(unprocessed&&a.carryDecision==="Ne prenosi")?"Bez ishoda · nije preneseno":"";
+  return !a.conclusion&&!linkedActions.length&&!linkedProjects.length&&(a.carry||a.transferredTo);
+ });
+ const processedAgenda=d.agenda.filter(a=>!unconsideredAgenda.some(u=>Number(u.id)===Number(a.id)));
+ const topics=processedAgenda.length?processedAgenda.map(a=>{
+  const linkedActions=a.actions.map(actionById).filter(Boolean),linkedProjects=a.projects.map(projectById).filter(Boolean);
+  const transfer=a.transferredTo?`Prenesena na sljedeći sastanak (${a.transferredTo}).`:a.carry?`Prenosi se na sljedeći sastanak.`:(!a.conclusion&&!linkedActions.length&&!linkedProjects.length&&a.carryDecision==="Ne prenosi")?"Bez ishoda · nije preneseno":"";
   return `<div class="proTopic">
    <div class="proTopicHead"><div><b>${a.no}. ${esc(a.title)}</b>${a.archived?` <span class="minutesRecordMeta">· Arhivirana</span>`:""}</div><button class="minutesEdit" data-min-agenda="${a.id}">Ispravi ›</button></div>
    ${a.conclusion?`<div class="proField"><div class="proLabel">Zaključak</div><div>${esc(a.conclusion)}</div></div>`:""}
@@ -1532,7 +1557,8 @@ function meetingMinutesDialog(meetingId,tempExtras=null){
    ${linkedProjects.length?`<div class="proField"><div class="proLabel">Projekat</div><div>${linkedProjects.map((x,i)=>`<div class="proOutcome"><b>${a.no}.${linkedActions.length+i+1}</b> ${esc(x.title)}${x.due?` · rok ${esc(x.due)}`:""}${x.detail?`<div>${esc(x.detail)}</div>`:""}<button class="minutesEdit" data-min-project="${x.id}">Ispravi projekat ›</button></div>`).join("")}</div></div>`:""}
    ${transfer?`<div class="proField"><div class="proLabel">Prenos</div><div><i>${esc(transfer)}</i></div></div>`:""}
   </div>`;
- }).join(""):`<div class="empty">Nema stavki dnevnog reda.</div>`;
+ }).join(""):`<div class="empty">Nema obrađenih tačaka dnevnog reda.</div>`;
+ const unconsideredHTML=unconsideredAgenda.length?`<div class="proCarryTableWrap"><table class="proCarryTable"><thead><tr><th>Tačka</th><th>Tema</th></tr></thead><tbody>${unconsideredAgenda.map(a=>`<tr><td>${a.no}</td><td>${esc(a.title)}</td></tr>`).join("")}</tbody></table></div>`:"";
 
  const notesHTML=d.notes.length?d.notes.map(x=>`<div class="minutesRecord"><div class="minutesRecordHead"><div class="minutesRecordTitle">${esc(x.title)}</div><button class="minutesEdit" data-min-note="${x.id}">Ispravi ›</button></div>${x.detail?`<div class="minutesRecordText">${esc(x.detail)}</div>`:""}</div>`).join(""):"";
 
@@ -1556,6 +1582,7 @@ function meetingMinutesDialog(meetingId,tempExtras=null){
    <div class="minutesSection"><h3>Uvod</h3><textarea id="minIntro" class="minutesFreeText" placeholder="Opciono">${esc(extras.intro||"")}</textarea></div>
    <div class="minutesSection"><h3>Dnevni red</h3>${agendaList}</div>
    <div class="minutesSection"><h3>Obrada tačaka dnevnog reda</h3>${topics}</div>
+   ${unconsideredHTML?`<div class="minutesSection"><h3>Tačke koje nijesu razmatrane i prenose se na sljedeći sastanak</h3>${unconsideredHTML}</div>`:""}
    ${notesHTML?`<div class="minutesSection"><h3>Beleške</h3>${notesHTML}</div>`:""}
    ${unlinkedHTML?`<div class="minutesSection"><h3>Ostale akcije</h3>${unlinkedHTML}</div>`:""}
    ${d.actions.length?`<div class="minutesSection"><h3>Pregled akcija</h3><div class="proActionTableWrap"><table class="proActionTable"><thead><tr><th>Tačka</th><th>Akcija</th><th>Odgovoran</th><th>Rok</th></tr></thead><tbody>${actionRows}</tbody></table></div></div>`:""}
@@ -2300,7 +2327,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-40").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-41").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
