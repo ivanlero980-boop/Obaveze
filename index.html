@@ -391,11 +391,34 @@ nav button.on:after{
 
 
 /* Dashboard alignment: one common horizontal frame */
-.dashboardContent{width:calc(100% - 12px);max-width:680px;margin:0 auto}
+.dashboardContent{width:100%;margin:0}
 .dashboardContent .areaTabs{width:max-content;max-width:100%;margin:12px auto 12px!important;padding-left:0;padding-right:0;justify-content:center}
-.dashboardContent .dashboardKpis{width:100%;margin-left:auto;margin-right:auto}
-.dashboardContent>.sectionHead{width:100%;margin-left:auto;margin-right:auto}
-.dashboardContent>.sectionCard{width:100%;margin-left:auto;margin-right:auto}
+.dashboardContent .dashboardKpis{width:100%;margin-left:0;margin-right:0}
+.dashboardContent>.sectionHead{width:100%;margin-left:0;margin-right:0}
+.dashboardContent>.sectionCard{width:100%;margin-left:0;margin-right:0}
+
+
+/* Dashboard meeting rows: reserve enough space for "Sjutra" or a full date */
+.dashboardContent [data-dashboard-meeting].upcomingRow{
+  grid-template-columns:54px minmax(0,1fr) minmax(66px,auto);
+}
+.dashboardContent [data-dashboard-meeting] .rowDue{
+  min-width:66px;
+  text-align:right;
+  overflow:visible;
+}
+@media (max-width:390px){
+  .dashboardContent [data-dashboard-meeting].upcomingRow{
+    grid-template-columns:50px minmax(0,1fr) minmax(62px,auto);
+    gap:9px;
+    padding-left:12px;
+    padding-right:12px;
+  }
+  .dashboardContent [data-dashboard-meeting] .rowDue{
+    min-width:62px;
+    font-size:10px;
+  }
+}
 
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
@@ -1817,7 +1840,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-29").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-30").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
