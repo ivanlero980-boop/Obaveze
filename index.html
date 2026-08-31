@@ -345,6 +345,19 @@ nav button.on:after{
 
 
 .starMark{font-weight:700}
+
+.minutesPreview{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:12px}
+.minutesPreview .minutesTitle{font-size:22px;font-weight:800;text-align:center;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px 4px 12px}
+.minutesMetaGrid{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;align-items:start;margin:14px 0 18px}
+.minutesMetaLabel{font-size:12px;color:var(--mute);font-weight:750;padding-top:9px}
+.minutesPreview input,.minutesPreview textarea{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.minutesSection{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.minutesSection h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--green-deep);margin:0 0 7px}
+.minutesSection textarea{min-height:92px;line-height:1.45;resize:vertical}
+.minutesHint{font-size:12px;color:var(--mute);line-height:1.4;margin-top:8px}
+.minutesActions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+@media(max-width:380px){.minutesMetaGrid{grid-template-columns:1fr;gap:4px}.minutesMetaLabel{padding-top:0}.minutesActions{grid-template-columns:1fr}}
+
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -934,6 +947,112 @@ function itemShareText(x){
  if(x["Detalji dogovora"])lines.push(`Detalji: ${x["Detalji dogovora"]}`);
  return lines.join("\n");
 }
+
+function meetingMinutesData(m){
+ const linked=meetingItems(m.ID);
+ const ser=m.SerijaID?seriesById(m.SerijaID):null;
+ const agenda=linked.filter(x=>x.Tip==="Beleška"&&x.AgendaStavka===true).slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const actions=linked.filter(x=>x.Tip==="Akcija").slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const projects=linked.filter(x=>x.Tip==="Projekat").slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const notes=linked.filter(x=>x.Tip==="Beleška"&&!x.AgendaStavka&&x.Status!=="Arhivirana").slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const carry=linked.filter(x=>x.Tip==="Beleška"&&x.AgendaStavka===true&&x.Status!=="Arhivirana").slice().sort((a,b)=>(a.ID||0)-(b.ID||0));
+ const detail=x=>x["Detalji dogovora"]||x.Napomena||"";
+ const lineWithDetail=(main,extra)=>extra?`${main}\n   ${extra}`:main;
+ return {
+  title:ser?.Naziv||m.Naslov||"Sastanak",
+  subtitle:ser&&m.Naslov?m.Naslov:"",
+  date:fmtDate(m.Datum||""),
+  participants:participantText(m.Ucesnici)||"",
+  agenda:agenda.map((x,i)=>`${i+1}. ${x.Zadatak}`).join("\n"),
+  actions:actions.map(x=>lineWithDetail(`• ${x.Zadatak}${x.Odgovoran?` — ${x.Odgovoran}`:""}${x.Rok?` — rok ${fmtDate(x.Rok)}`:""}${x.Status==="Završeno"?" — završeno":""}`,detail(x))).join("\n\n"),
+  projects:projects.map(x=>lineWithDetail(`• ${x.Projekat||x.Zadatak}${x.Rok?` — rok ${fmtDate(x.Rok)}`:""}${x.Status==="Završen"?" — završen":""}`,detail(x))).join("\n\n"),
+  notes:notes.map(x=>lineWithDetail(`• ${x.Zadatak}`,detail(x))).join("\n\n"),
+  carry:carry.map(x=>`• ${x.Zadatak}`).join("\n")
+ };
+}
+function readMinutesForm(){
+ return {
+  title:$("#minTitle")?.value.trim()||"",
+  subtitle:$("#minSubtitle")?.value.trim()||"",
+  date:$("#minDate")?.value.trim()||"",
+  participants:$("#minParticipants")?.value.trim()||"",
+  agenda:$("#minAgenda")?.value.trim()||"",
+  actions:$("#minActions")?.value.trim()||"",
+  projects:$("#minProjects")?.value.trim()||"",
+  notes:$("#minNotes")?.value.trim()||"",
+  carry:$("#minCarry")?.value.trim()||""
+ };
+}
+function minutesPlainText(d){
+ const sec=(name,val)=>val?`\n\n${name}\n${val}`:"";
+ let out=d.title||"Zapisnik";
+ if(d.subtitle)out+=`\n${d.subtitle}`;
+ if(d.date)out+=`\nDatum: ${d.date}`;
+ if(d.participants)out+=`\nUčesnici: ${d.participants}`;
+ out+=sec("AGENDA",d.agenda);
+ out+=sec("AKCIJE",d.actions);
+ out+=sec("PROJEKTI",d.projects);
+ out+=sec("BELEŠKE",d.notes);
+ out+=sec("TEME ZA NAREDNI SASTANAK",d.carry);
+ return out;
+}
+function minutesPrintHTML(d){
+ const para=v=>esc(v||"").replace(/\n/g,"<br>");
+ const block=(title,val)=>val?`<section><h2>${esc(title)}</h2><div class="content">${para(val)}</div></section>`:"";
+ return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.title||"Zapisnik")}</title><style>
+  @page{size:A4;margin:18mm 16mm 18mm}
+  *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#1f2924;margin:0;font-size:11pt;line-height:1.45}
+  header{padding-bottom:14px;border-bottom:2px solid #0b6b3a;margin-bottom:16px}
+  h1{font-size:22pt;margin:0 0 4px;text-align:center;color:#153526}
+  .subtitle{text-align:center;font-size:12pt;margin:3px 0 12px;color:#4f5f56}
+  .meta{display:grid;grid-template-columns:90px 1fr;gap:5px 10px;font-size:10.5pt}.label{font-weight:700;color:#607068}
+  section{margin-top:17px;break-inside:avoid-page}section h2{font-size:10.5pt;letter-spacing:.08em;text-transform:uppercase;color:#0b6b3a;border-bottom:1px solid #dce5df;padding-bottom:5px;margin:0 0 8px}
+  .content{white-space:normal}.footer{margin-top:24px;padding-top:8px;border-top:1px solid #dce5df;font-size:8.5pt;color:#7d8a83;text-align:center}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+ </style></head><body><header><h1>${esc(d.title||"Zapisnik")}</h1>${d.subtitle?`<div class="subtitle">${esc(d.subtitle)}</div>`:""}<div class="meta"><div class="label">Datum</div><div>${esc(d.date||"—")}</div><div class="label">Učesnici</div><div>${esc(d.participants||"—")}</div></div></header>
+ ${block("Agenda",d.agenda)}${block("Akcije",d.actions)}${block("Projekti",d.projects)}${block("Beleške",d.notes)}${block("Teme za naredni sastanak",d.carry)}
+ <div class="footer">Zapisnik generisan iz aplikacije Obaveze</div></body></html>`;
+}
+function exportMinutesPDF(d){
+ const w=window.open("","_blank");
+ if(!w){alert("Pregledač je blokirao otvaranje PDF pregleda. Pokušaj ponovo iz instalirane aplikacije.");return}
+ w.document.open();w.document.write(minutesPrintHTML(d));w.document.close();
+ const run=()=>{try{w.focus();w.print()}catch(e){alert("PDF pregled nije mogao da se otvori.")}};
+ if(w.document.readyState==="complete")setTimeout(run,180);else w.onload=()=>setTimeout(run,180);
+}
+function meetingMinutesDialog(meetingId,forceFresh=false){
+ const m=meetingById(meetingId);if(!m)return;
+ const generated=meetingMinutesData(m);
+ const d=!forceFresh&&m.ZapisnikDraft?{...generated,...m.ZapisnikDraft}:generated;
+ openDlg(`<div class="row between"><div><h2>Pregled zapisnika</h2><div class="sm mute">${meetingLabel(m)}</div></div><button class="btn" id="minClose">×</button></div>
+  <div class="minutesPreview">
+   <input class="minutesTitle" id="minTitle" value="${esc(d.title||"")}">
+   <div class="minutesMetaGrid">
+    <div class="minutesMetaLabel">Dodatni naslov</div><input id="minSubtitle" value="${esc(d.subtitle||"")}" placeholder="opciono">
+    <div class="minutesMetaLabel">Datum</div><input id="minDate" value="${esc(d.date||"")}">
+    <div class="minutesMetaLabel">Učesnici</div><textarea id="minParticipants" rows="2">${esc(d.participants||"")}</textarea>
+   </div>
+   <div class="minutesSection"><h3>Agenda</h3><textarea id="minAgenda">${esc(d.agenda||"")}</textarea></div>
+   <div class="minutesSection"><h3>Akcije</h3><textarea id="minActions">${esc(d.actions||"")}</textarea></div>
+   <div class="minutesSection"><h3>Projekti</h3><textarea id="minProjects">${esc(d.projects||"")}</textarea></div>
+   <div class="minutesSection"><h3>Beleške</h3><textarea id="minNotes">${esc(d.notes||"")}</textarea></div>
+   <div class="minutesSection"><h3>Teme za naredni sastanak</h3><textarea id="minCarry">${esc(d.carry||"")}</textarea></div>
+   <div class="minutesHint">Sve je automatski popunjeno iz sastanka. Ovdje možeš samo dopisati ili preformulisati ono što želiš u zapisniku; izmjene ne mijenjaju izvorne Akcije, Projekte ili Beleške.</div>
+  </div>
+  <div class="minutesActions">
+   <button class="btn pri" id="minPdf">PDF zapisnik</button>
+   <button class="btn" id="minShare">Podijeli</button>
+   <button class="btn" id="minSave">Sačuvaj nacrt</button>
+   <button class="btn" id="minRegenerate">Ponovo generiši</button>
+  </div>
+  <button class="btn" style="width:100%;margin-top:8px" id="minBack">Nazad na sastanak</button>`);
+ const back=()=>meetingDialog(meetingId);
+ $("#minClose").onclick=back;$("#minBack").onclick=back;
+ $("#minPdf").onclick=()=>exportMinutesPDF(readMinutesForm());
+ $("#minShare").onclick=()=>shareText(`${readMinutesForm().title||"Zapisnik"} — zapisnik`,minutesPlainText(readMinutesForm()));
+ $("#minSave").onclick=()=>{m.ZapisnikDraft=readMinutesForm();save();alert("Nacrt zapisnika je sačuvan. Izvorni podaci sastanka nijesu mijenjani.")};
+ $("#minRegenerate").onclick=()=>{if(confirm("Ponovo generisati zapisnik iz trenutnih podataka sastanka? Ručne izmjene u nacrtu biće uklonjene.")){delete m.ZapisnikDraft;save();meetingMinutesDialog(meetingId,true)}};
+}
 function meetingNoteDialog(meetingId){
  const m=meetingById(meetingId);if(!m)return;
  openDlg(`<div class="row between"><h2>Napomena sastanka</h2><button class="btn" id="meetingNoteClose">×</button></div>
@@ -1049,6 +1168,7 @@ function meetingDialog(id){
   </div>
   <div class="sm" style="margin-top:8px"><span class="mute">Učesnici:</span> ${esc(participantText(m.Ucesnici)||"—")}</div>
   <div class="btnrow" style="margin-top:10px"><button class="btn grow" id="shareAgenda">Podijeli agendu</button><button class="btn grow" id="shareConclusions">Podijeli zaključke</button></div>
+  <button class="btn pri" style="width:100%;margin-top:8px" id="meetingMinutes">Pregled zapisnika</button>
   <div class="kpis meetingKpis" style="margin-top:14px">
    <div class="kpi"><div class="xs">Akcije</div><div class="num">${allA.length}</div></div>
    <div class="kpi"><div class="xs">Završeno</div><div class="num">${done}</div></div>
@@ -1075,6 +1195,7 @@ function meetingDialog(id){
  if($("#openMeetingNote"))$("#openMeetingNote").onclick=()=>meetingNoteDialog(m.ID);
  $("#shareAgenda").onclick=()=>shareText(`${ser?.Naziv||m.Naslov||"Sastanak"} — agenda`,meetingAgendaText(m));
  $("#shareConclusions").onclick=()=>shareText(`${ser?.Naziv||m.Naslov||"Sastanak"} — zaključci`,meetingConclusionsText(m));
+ $("#meetingMinutes").onclick=()=>meetingMinutesDialog(m.ID);
  if($("#kmAddAgenda"))$("#kmAddAgenda").onclick=()=>agendaDialog(m.ID);
  $("#kmEdit").onclick=()=>editMeeting(m);
  if($("#kmAddAction"))$("#kmAddAction").onclick=()=>editItem(null,"Akcija",{KolegijumID:m.ID,SerijaID:null,Oblast:"Poslovno"},{returnMeeting:true,meetingId:m.ID});
@@ -1455,7 +1576,7 @@ function bindCards(root=document,context=null){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-20").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-21").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
