@@ -1588,9 +1588,8 @@ function changeOwnerDialog(id){
   <label class="f"><span class="sm mute">Novi odgovorni *</span><input id="newOwner" value="${esc(current)}"></label>
   <label class="f"><span class="sm mute">Razlog promjene</span><textarea id="ownerReason" placeholder="Opciono"></textarea></label>
   <div class="btnrow"><button class="btn pri grow" id="ownerSave">Sačuvaj</button><button class="btn grow" id="ownerCancel">Otkaži</button></div>`,`owner:${id}`,{dedupe:false});
- const back=()=>itemDialog(id,context);
- $("#ownerClose").onclick=back;
- $("#ownerCancel").onclick=back;
+ $("#ownerClose").onclick=navBack;
+ $("#ownerCancel").onclick=navBack;
  $("#ownerSave").onclick=()=>{
   const next=$("#newOwner").value.trim(),reason=$("#ownerReason").value.trim();
   if(!next){alert("Unesi odgovorno lice.");return}
@@ -1598,7 +1597,7 @@ function changeOwnerDialog(id){
   if(!Array.isArray(x.OdgovorniIstorija))x.OdgovorniIstorija=[];
   x.OdgovorniIstorija.push({Od:current,Do:next,Datum:today(),Razlog:reason});
   x.Odgovoran=next;
-  save();norm();render();itemDialog(id,context);
+  save();norm();render();navBack({type:"changed",kind:"Akcija",id:x.ID});
  };
 }
 function itemDialog(id){
@@ -1837,7 +1836,7 @@ function noteDialog(id){
  <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="noteEdit">Uredi</button>${isMeetingAgenda?`<button class="btn pri grow" id="noteOutcome">Zaključak / prenos</button>`:!isAgenda?`<button class="btn grow" id="noteToAgenda">→ Agenda</button>`:""}<button class="btn pri grow" id="noteConvert">→ Akcija</button><button class="btn grow" id="noteConvertProject">→ Projekat</button></div>
  <div class="btnrow" style="margin-top:8px"><button class="btn grow" id="noteShare">Podijeli</button><button class="btn grow" id="noteArchive">Arhiviraj</button><button class="btn danger grow" id="noteDelete">Obriši</button></div>`,
  `note:${id}`,{refresh:()=>noteDialog(id)});
- $("#noteClose").onclick=navBack;$("#noteEdit").onclick=()=>isAgenda?editAgendaTextDialog(n.ID):editItem(n,"Beleška");
+ $("#noteClose").onclick=()=>navBack({type:"changed",kind:"Beleška",id:n.ID});$("#noteEdit").onclick=()=>isAgenda?editAgendaTextDialog(n.ID):editItem(n,"Beleška");
  if($("#noteOutcome"))$("#noteOutcome").onclick=()=>agendaOutcomeDialog(n.ID);
  if($("#noteToAgenda"))$("#noteToAgenda").onclick=()=>noteToAgendaDialog(n.ID);
  $("#noteConvert").onclick=()=>editItem(null,"Akcija",{Zadatak:n.Zadatak,Oblast:n.Oblast||"Poslovno",KolegijumID:n.KolegijumID||null,SerijaID:n.KolegijumID?null:(n.SerijaID||null),_fromNoteId:n.ID,AgendaIzvorID:isAgenda?n.ID:null});
@@ -1943,7 +1942,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-36").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-37").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
