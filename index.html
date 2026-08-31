@@ -391,11 +391,11 @@ nav button.on:after{
 
 
 /* Dashboard alignment: one common horizontal frame */
-.dashboardContent{width:100%;margin:0 auto}
-.dashboardContent .areaTabs{margin:12px 0 12px!important;padding-left:0;padding-right:0;justify-content:center}
-.dashboardContent .dashboardKpis{width:100%;margin-left:0;margin-right:0}
-.dashboardContent>.sectionHead{margin-left:0;margin-right:0}
-.dashboardContent>.sectionCard{width:100%;margin-left:0;margin-right:0}
+.dashboardContent{width:calc(100% - 12px);max-width:680px;margin:0 auto}
+.dashboardContent .areaTabs{width:max-content;max-width:100%;margin:12px auto 12px!important;padding-left:0;padding-right:0;justify-content:center}
+.dashboardContent .dashboardKpis{width:100%;margin-left:auto;margin-right:auto}
+.dashboardContent>.sectionHead{width:100%;margin-left:auto;margin-right:auto}
+.dashboardContent>.sectionCard{width:100%;margin-left:auto;margin-right:auto}
 
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
@@ -1059,7 +1059,7 @@ function minutesPlainText(d,extras={},generatedAt=minutesGeneratedAt()){
  out+=`\n\nGenerisano: ${generatedAt}`;
  return out;
 }
-function minutesPrintHTML(d,extras={},generatedAt=minutesGeneratedAt()){
+function minutesPrintHTML(d,extras={},generatedAt=minutesGeneratedAt(),documentTitle=null){
  const para=v=>esc(v||"").replace(/\n/g,"<br>");
  const section=(title,html)=>html?`<section><h2>${esc(title)}</h2>${html}</section>`:"";
  const actionById=id=>d.actions.find(x=>Number(x.id)===Number(id));
@@ -1076,7 +1076,7 @@ function minutesPrintHTML(d,extras={},generatedAt=minutesGeneratedAt()){
  const unlinkedProjects=d.projects.filter(x=>!x.agendaId).map(x=>`<div class="record"><b>${esc(x.title)}</b><div class="small">${esc([x.due?`Rok: ${x.due}`:"",x.status==="Završen"?"Završen":""].filter(Boolean).join(" · "))}</div>${x.detail?`<div>${para(x.detail)}</div>`:""}</div>`).join("");
  const unlinkedActions=d.actions.filter(x=>!x.agendaId);
  const actions=unlinkedActions.map(x=>`<div class="record"><b>${esc(x.title)}</b><div class="small">${esc([x.status,x.owner?`Odgovoran: ${x.owner}`:"",x.due?`Rok: ${x.due}`:""].filter(Boolean).join(" · "))}</div>${x.detail?`<div>${para(x.detail)}</div>`:""}</div>`).join("");
- return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.title||"Zapisnik")}</title><style>
+ return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(documentTitle||minutesFileName(d))}</title><style>
   @page{size:A4;margin:18mm 16mm 18mm}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#1f2924;margin:0;font-size:10.5pt;line-height:1.45}
   header{padding-bottom:14px;border-bottom:2px solid #0b6b3a;margin-bottom:16px}h1{font-size:22pt;margin:0 0 4px;text-align:center;color:#153526}.subtitle{text-align:center;font-size:12pt;margin:3px 0 12px;color:#4f5f56}
   .meta{display:grid;grid-template-columns:90px 1fr;gap:5px 10px}.label{font-weight:700;color:#607068}section{margin-top:17px}section h2{font-size:10.5pt;letter-spacing:.08em;text-transform:uppercase;color:#0b6b3a;border-bottom:1px solid #dce5df;padding-bottom:5px;margin:0 0 8px}
@@ -1086,16 +1086,22 @@ function minutesPrintHTML(d,extras={},generatedAt=minutesGeneratedAt()){
  ${extras.intro?section("Uvod / kontekst",`<div class="free">${para(extras.intro)}</div>`):""}${d.previousMeeting?section(`Realizacija prethodnog sastanka · ${d.previousMeeting.date}`,previous):""}${section("Agenda",agenda)}${section("Zaključci po tačkama",conclusions)}${section("Beleške — informativno",notes)}${unlinkedProjects?section("Projekti van agende",unlinkedProjects):""}${section("Ostale akcije",actions)}${extras.closing?section("Završna napomena",`<div class="free">${para(extras.closing)}</div>`):""}
  <div class="footer">Generisano: ${esc(generatedAt)} · Obaveze</div></body></html>`;
 }
+function minutesFileName(d){
+ const raw=`Zapisnik-${d.title||"Sastanak"}-${d.date||""}`;
+ return raw.replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g," ").replace(/\.+$/,"").trim();
+}
 function exportMinutesPDF(d,extras={}){
- const generatedAt=minutesGeneratedAt(),html=minutesPrintHTML(d,extras,generatedAt);
- const frame=document.createElement("iframe");
- frame.setAttribute("aria-hidden","true");
+ const generatedAt=minutesGeneratedAt(),fileName=minutesFileName(d),html=minutesPrintHTML(d,extras,generatedAt,fileName);
+ const frame=document.createElement("iframe"),oldTitle=document.title;
+ frame.setAttribute("aria-hidden","true");frame.title=fileName;
  frame.style.cssText="position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
- const cleanup=()=>{try{frame.remove()}catch(_){}};
+ const cleanup=()=>{document.title=oldTitle;try{frame.remove()}catch(_){}};
  frame.onload=()=>{
   try{
    const w=frame.contentWindow;
    if(!w)throw new Error("print frame unavailable");
+   try{w.document.title=fileName}catch(_){}
+   document.title=fileName;
    w.onafterprint=cleanup;
    setTimeout(()=>{try{w.focus();w.print()}catch(e){cleanup();alert("PDF pregled nije mogao da se otvori.")}},180);
    setTimeout(cleanup,120000);
@@ -1811,7 +1817,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-28").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-29").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
