@@ -1032,6 +1032,11 @@ function readMinutesExtras(){
   closing:$("#minClosing")?.value.trim()||""
  };
 }
+function preserveMinutesExtras(meetingId){
+ const m=meetingById(meetingId);if(!m)return;
+ m.ZapisnikDraft=readMinutesExtras();
+ save();
+}
 function minutesPlainText(d,extras={},generatedAt=minutesGeneratedAt()){
  const sec=(name,rows)=>rows.length?`\n\n${name}\n${rows.join("\n")}`:"";
  let out=d.title||"Zapisnik";
@@ -1125,15 +1130,15 @@ function meetingMinutesDialog(meetingId,tempExtras=null){
   <button class="btn" style="width:100%;margin-top:8px" id="minBack">Nazad na sastanak</button>`);
  const back=()=>meetingDialog(meetingId);
  $("#minClose").onclick=back;$("#minBack").onclick=back;
- $("#minEditMeeting").onclick=()=>editMeeting(m,false,{returnMinutes:true});
+ $("#minEditMeeting").onclick=()=>{preserveMinutesExtras(meetingId);editMeeting(m,false,{returnMinutes:true})};
  $("#minPdf").onclick=()=>exportMinutesPDF(meetingMinutesData(m),readMinutesExtras());
  $("#minShare").onclick=()=>{const now=minutesGeneratedAt();shareText(`${d.title||"Zapisnik"} — zapisnik`,minutesPlainText(meetingMinutesData(m),readMinutesExtras(),now))};
  $("#minSave").onclick=()=>{m.ZapisnikDraft=readMinutesExtras();save();alert("Sačuvani su samo uvod i završna napomena. Činjenice se uvijek čitaju iz izvornog sastanka.")};
  $("#minRefresh").onclick=()=>meetingMinutesDialog(meetingId,readMinutesExtras());
- $("#dlgBody").querySelectorAll("[data-min-agenda]").forEach(b=>b.onclick=()=>noteDialog(Number(b.dataset.minAgenda),true,null,meetingId));
- $("#dlgBody").querySelectorAll("[data-min-action]").forEach(b=>b.onclick=()=>itemDialog(Number(b.dataset.minAction),{type:"minutes",meetingId}));
- $("#dlgBody").querySelectorAll("[data-min-project]").forEach(b=>b.onclick=()=>projectDialog(Number(b.dataset.minProject),{type:"minutes",meetingId}));
- $("#dlgBody").querySelectorAll("[data-min-note]").forEach(b=>b.onclick=()=>noteDialog(Number(b.dataset.minNote),true,null,meetingId));
+ $("#dlgBody").querySelectorAll("[data-min-agenda]").forEach(b=>b.onclick=()=>{preserveMinutesExtras(meetingId);noteDialog(Number(b.dataset.minAgenda),true,null,meetingId)});
+ $("#dlgBody").querySelectorAll("[data-min-action]").forEach(b=>b.onclick=()=>{preserveMinutesExtras(meetingId);itemDialog(Number(b.dataset.minAction),{type:"minutes",meetingId})});
+ $("#dlgBody").querySelectorAll("[data-min-project]").forEach(b=>b.onclick=()=>{preserveMinutesExtras(meetingId);projectDialog(Number(b.dataset.minProject),{type:"minutes",meetingId})});
+ $("#dlgBody").querySelectorAll("[data-min-note]").forEach(b=>b.onclick=()=>{preserveMinutesExtras(meetingId);noteDialog(Number(b.dataset.minNote),true,null,meetingId)});
 }
 function meetingNoteDialog(meetingId){
  const m=meetingById(meetingId);if(!m)return;
@@ -1380,7 +1385,11 @@ function ownerHistoryHTML(x){
 }
 function returnAfterHistoryEdit(id,context){
  const x=S.items.find(z=>Number(z.ID)===Number(id));
- if(context&&context.type==="minutes"&&context.meetingId){projectDialog(id,context);return}
+ if(context&&context.type==="minutes"&&context.meetingId){
+  if(x?.Tip==="Projekat")projectDialog(id,context);
+  else itemDialog(id,context);
+  return;
+ }
  if(context&&context.type==="projectDirect"){projectDialog(context.id||id);return}
  itemDialog(id,context||null);
 }
@@ -1747,7 +1756,7 @@ function bindCards(root=document,context=null){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-22").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260831-23").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
