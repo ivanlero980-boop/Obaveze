@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260901-49"><link rel="apple-touch-icon" href="icon-192.png?v=20260901-49"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260901-50"><link rel="apple-touch-icon" href="icon-192.png?v=20260901-50"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -228,6 +228,10 @@ h1,h2,h3,p{margin:0}
 .secondaryDue.late{color:var(--red)}
 .secondaryDue.soon{color:var(--amber)}
 .secondaryMeta{font-size:12px;color:var(--mute);margin-top:6px;line-height:1.3}
+.actionOrigin{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--green-soft);border:1px solid #d1e9dc;font-size:12px;line-height:1.35;color:var(--green-deep)}
+.actionContext{margin:12px 0 4px;padding:12px;border:1px solid #d1e9dc;border-radius:13px;background:var(--green-soft)}
+.actionContextTitle{font-size:12px;font-weight:800;color:var(--green-deep);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.actionContextRow{font-size:13px;line-height:1.45;margin-top:6px}.actionContextRow:first-of-type{margin-top:0}.actionContextRow b{color:var(--green-deep)}
 .projectCard,.noteCard{padding:14px}
 .projectLead,.noteLead{display:flex;align-items:flex-start;gap:12px}
 .secondaryIcon{width:32px;height:32px;flex:0 0 32px;border-radius:10px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center}
@@ -764,13 +768,16 @@ function actionListCard(x){
  const due=x.Rok?(d<0?`Kasni ${Math.abs(d)} d`:d===0?"Danas":fmtDate(x.Rok)):"Bez roka";
  const dueCls=d<0?"late":d<=7?"soon":"";
  const meeting=x.KolegijumID?meetingById(x.KolegijumID):null;
+ const sourceTopic=x.AgendaIzvorID?S.items.find(n=>Number(n.ID)===Number(x.AgendaIzvorID)&&n.Tip==="Beleška"):null;
  const meetingMeta=meeting?(meeting.SerijaID&&seriesById(meeting.SerijaID)?`${seriesById(meeting.SerijaID).Naziv} · ${fmtDate(meeting.Datum)}`:`Sastanak · ${fmtDate(meeting.Datum)}`):"";
  const directSeries=x.SerijaID?seriesById(x.SerijaID):null;
  const seriesMeta=!meeting&&directSeries?directSeries.Naziv:"";
- const meta=[x.Oblast==="Privatno"?"Privatno":"",x.Odgovoran,x.Projekat,seriesMeta,meetingMeta].filter(Boolean).map(esc).join(" · ");
+ const meta=[x.Oblast==="Privatno"?"Privatno":"",x.Odgovoran,x.Projekat,seriesMeta,!meeting?meetingMeta:""].filter(Boolean).map(esc).join(" · ");
+ const origin=meeting?`<div class="actionOrigin"><b>Iz sastanka</b> · ${esc(meetingMeta)}${sourceTopic?`<br>Tema: ${esc(sourceTopic.Zadatak)}`:""}</div>`:"";
  return `<div class="card secondaryCard ${cls}" data-item="${x.ID}">
   <div class="secondaryTop"><div class="taskTitle grow">${esc(x.Zadatak)}</div><div class="secondaryDue ${dueCls}">${esc(due)}</div></div>
   ${meta?`<div class="secondaryMeta">${meta}</div>`:""}
+  ${origin}
   ${x.Prioritet==="Strateško"?`<div class="meta"><span class="chip priority strategic">Strateško</span></div>`:""}
  </div>`;
 }
@@ -2046,11 +2053,24 @@ function changeOwnerDialog(id){
   save();norm();render();navBack({type:"changed",kind:"Akcija",id:x.ID});
  };
 }
+function actionContextHTML(x){
+ if(x?.Tip!=="Akcija"||!x.KolegijumID)return "";
+ const m=meetingById(x.KolegijumID);
+ const topic=x.AgendaIzvorID?S.items.find(n=>Number(n.ID)===Number(x.AgendaIzvorID)&&n.Tip==="Beleška"):null;
+ if(!m&&!topic)return "";
+ return `<div class="actionContext"><div class="actionContextTitle">Kontekst iz sastanka</div>
+  ${m?`<div class="actionContextRow"><b>Sastanak:</b> ${meetingLabel(m)}</div>`:""}
+  ${topic?`<div class="actionContextRow"><b>Tema:</b> ${esc(topic.Zadatak||"—")}</div>`:""}
+  ${topic?.Zakljucak?`<div class="actionContextRow"><b>Zaključak:</b> ${esc(topic.Zakljucak)}</div>`:""}
+  ${topic?.IzDiskusije?`<div class="actionContextRow"><b>Iz diskusije:</b> ${esc(topic.IzDiskusije)}</div>`:""}
+ </div>`;
+}
 function itemDialog(id){
  const x=S.items.find(z=>z.ID===id);if(!x){navBack();return}
  navOpen(`<div class="row between"><h2>${esc(x.Zadatak||x.Projekat)}</h2><button class="btn" id="close">×</button></div>
- <div class="meta" style="margin:10px 0">${x.Status?`<span class="chip">${esc(x.Status)}</span>`:""}${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}${x.Sistem?`<span class="chip">${esc(x.Sistem)}</span>`:""}</div>
- ${x["Detalji dogovora"]?`<p class="sm">${esc(x["Detalji dogovora"])}</p>`:""}<hr>
+ <div class="meta" style="margin:10px 0">${x.Status?`<span class="chip">${esc(x.Status)}</span>`:""}${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}${x.Sistem?`<span class="chip">${esc(x.Sistem)}</span>`:""}${x.Tip==="Akcija"?`<span class="chip ${x.KolegijumID?"person":""}">${x.KolegijumID?"Iz sastanka":"Samostalna akcija"}</span>`:""}</div>
+ ${x.Tip==="Akcija"?actionContextHTML(x):""}
+ ${x["Detalji dogovora"]?`<p class="sm" style="margin-top:10px">${esc(x["Detalji dogovora"])}</p>`:""}<hr>
  ${x.Tip==="Akcija"?`<div class="sm mute">Odgovoran</div><div>${esc(x.Odgovoran||"—")}</div><div class="sm mute" style="margin-top:9px">Rok</div><div>${esc(fmtDate(x.Rok)||"—")}</div>`:""}
  ${x.Projekat?`<div class="sm mute" style="margin-top:9px">Projekat</div><div>${esc(x.Projekat)}</div>`:""}${x.SerijaID&&seriesById(x.SerijaID)?`<div class="sm mute" style="margin-top:9px">${seriesById(x.SerijaID).Tip==="Projektna"?"Projekat":"Serija"}</div><div>${esc(seriesById(x.SerijaID).Naziv)}</div>`:""}${x.KolegijumID?`<div class="sm mute" style="margin-top:9px">Sastanak</div><div>${meetingLabel(meetingById(x.KolegijumID))}</div>`:""}
  ${x.Napomena&&!x["Detalji dogovora"]?`<div class="sm mute" style="margin-top:9px">Detalji / dogovor</div><div>${esc(x.Napomena)}</div>`:""}
