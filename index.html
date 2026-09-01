@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260901-47"><link rel="apple-touch-icon" href="icon-192.png?v=20260901-47"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260901-48"><link rel="apple-touch-icon" href="icon-192.png?v=20260901-48"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -989,7 +989,15 @@ function editSeries(s=null,selectOnSave=false,preset={}){
   if(tip==="Projektna"){s.Cilj=$("#seriesGoal").value.trim();s.Rok=due}else{s.Cilj=s.Cilj||"";s.Rok=s.Rok||""}
   if(s.AgendaIzvorID){const source=S.items.find(n=>Number(n.ID)===Number(s.AgendaIzvorID));if(source){source.PovezaniProjekatID=s.ID;source.Obradjeno=true;}}
   save();norm();render();
-  navBack({type:selectOnSave?"series-selected":"series-saved",id:s.ID});
+  if(s.AgendaIzvorID){
+   const sourceId=Number(s.AgendaIzvorID);
+   const returnedToProjectPicker=navBack({type:"series-saved",id:s.ID});
+   if(returnedToProjectPicker){
+    if(!navBack({type:"changed",kind:"Agenda",id:sourceId}))noteDialog(sourceId);
+   }else noteDialog(sourceId);
+  }else{
+   navBack({type:selectOnSave?"series-selected":"series-saved",id:s.ID});
+  }
  };
 }
 function seriesDialog(id,options={}){
@@ -2137,7 +2145,8 @@ function editItem(x=null,type="Akcija",preset={}){
   if(x.Tip==="Akcija"){
    x.Odgovoran=$("#eOwner").value.trim();x.Rok=$("#eDue").value;x.Status=x.Status==="Završeno"?"Završeno":"Otvoreno";
    x.Projekat=x.Projekat||"";x.ProjectID=x.ProjectID||null;x.Prioritet=$("#ePriority")?.value||x.Prioritet||"";x.Sistem=x.Oblast==="Poslovno"?($("#eSystem")?.value||"Osiguranje"):"";
-   x.SerijaID=x.KolegijumID?(meetingById(x.KolegijumID)?.SerijaID||null):(Number($("#eSeries")?.value)||null);
+   const selectedSeriesId=Number($("#eSeries")?.value)||null;
+    x.SerijaID=selectedSeriesId||(x.KolegijumID?(meetingById(x.KolegijumID)?.SerijaID||null):null);
    x.Izvor=(x.Oblast==="Poslovno"&&!x.KolegijumID)?($("#eSource")?.value.trim()||""):"";x["Detalj izvora"]=(x.Oblast==="Poslovno"&&!x.KolegijumID)?($("#eSourceDetail")?.value.trim()||""):"";x["Detalji dogovora"]=$("#eDetails")?.value||"";x.Napomena="";
   }
   if(x.Tip==="Beleška"){
@@ -2407,7 +2416,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260901-46").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260901-48").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
