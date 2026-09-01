@@ -1417,11 +1417,17 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
  };
  const inlineField=(label,value,{size=18,weight=400,italic=false,color=DARK}={})=>{
   if(!value)return;
-  const labelText=label+":",labelSize=17,gap=8;
-  font(labelSize,700);const lw=ctx.measureText(labelText).width,maxW=W-2*M-lw-gap;
-  const lines=wrap(value,maxW,size,weight,italic),lh=Math.round(size*1.22),h=Math.max(27,lines.length*lh+4);
+  const labelText=label+":",labelSize=17,gap=8,fullW=W-2*M;
+  font(labelSize,700);const lw=ctx.measureText(labelText).width,firstW=fullW-lw-gap;
+  font(size,weight,italic);
+  const words=String(value).split(/\s+/).filter(Boolean);let first="",rest=[],spill=false;
+  words.forEach(w=>{if(!spill){const t=first?first+" "+w:w;if(first&&ctx.measureText(t).width>firstW){spill=true;rest.push(w)}else first=t}else rest.push(w)});
+  const restLines=rest.length?wrap(rest.join(" "),fullW,size,weight,italic):[];
+  const lh=Math.round(size*1.22),h=Math.max(27,lh+restLines.length*lh+4);
   ensure(h);font(labelSize,700);ctx.fillStyle=GREEN;ctx.fillText(labelText,M,y+20);
-  drawLines(lines,M+lw+gap,y+20,size,weight,color,italic,lh);y+=h;
+  font(size,weight,italic);ctx.fillStyle=color;ctx.fillText(first,M+lw+gap,y+20);
+  if(restLines.length)drawLines(restLines,M,y+20+lh,size,weight,color,italic,lh);
+  y+=h;
  };
  const firstPageHeader=()=>{
   newPage();
@@ -1488,18 +1494,16 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
   y+=9;
  }
 
- if(unconsideredAgenda.length || d.actions.length){
-  if(y>540)newPage();
- }
 
  if(unconsideredAgenda.length){
-  section("Tačke koje nijesu razmatrane i prenose se na sljedeći sastanak");
+  section("Tačke koje nijesu razmatrane");
   const col1=105,col2=W-2*M-col1,headH=36;
   ensure(headH+44);ctx.fillStyle=GREEN;ctx.fillRect(M,y,W-2*M,headH);
   font(16,700);ctx.fillStyle="#fff";ctx.fillText("Tačka",M+12,y+24);ctx.fillText("Tema",M+col1+12,y+24);y+=headH;
   unconsideredAgenda.forEach(a=>{
    const ls=wrap(a.title,col2-24,16,400),rh=Math.max(32,ls.length*20+10);ensure(rh);
    ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,W-2*M,rh);
+   ctx.beginPath();ctx.moveTo(M+col1,y);ctx.lineTo(M+col1,y+rh);ctx.stroke();
    font(16,700);ctx.fillStyle=DARK;ctx.fillText(String(a.no),M+22,y+22);
    drawLines(ls,M+col1+12,y+21,16,400,DARK,false,20);y+=rh;
   });
@@ -1519,15 +1523,20 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
 
  if(d.actions.length){
   section("Pregled akcija");
-  const cols=[82,498,238,114],heads=["Tačka","Akcija","Odgovoran","Rok"],headH=38;
-  ensure(headH+48);ctx.fillStyle=GREEN;ctx.fillRect(M,y,W-2*M,headH);
-  let xx=M;heads.forEach((h,i)=>{font(16,700);ctx.fillStyle="#fff";ctx.fillText(h,xx+9,y+25);xx+=cols[i]});y+=headH;
+  const cols=[82,490,224,136],heads=["Tačka","Akcija","Odgovoran","Rok"],headH=38,totalW=cols.reduce((a,b)=>a+b,0);
+  ensure(headH+48);ctx.fillStyle=GREEN;ctx.fillRect(M,y,totalW,headH);
+  let xx=M;heads.forEach((h,i)=>{font(16,700);ctx.fillStyle="#fff";ctx.fillText(h,xx+9,y+25);xx+=cols[i]});
+  ctx.strokeStyle=LINE;ctx.lineWidth=1;let hx=M;for(let i=1;i<cols.length;i++){hx+=cols[i-1];ctx.beginPath();ctx.moveTo(hx,y);ctx.lineTo(hx,y+headH);ctx.stroke()}
+  y+=headH;
   d.actions.forEach(x=>{
    const a=d.agenda.find(z=>Number(z.id)===Number(x.agendaId)),ix=a?a.actions.findIndex(id=>Number(id)===Number(x.id)):-1,ref=a&&ix>=0?`${a.no}.${ix+1}`:"—";
-   const vals=[ref,x.title,x.owner||"—",x.due||"—"];
-   const lines=vals.map((v,i)=>wrap(v,cols[i]-18,15,i===0||i>=2?700:400)),rh=Math.max(...lines.map(v=>v.length))*19+12;
-   ensure(rh);ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,W-2*M,rh);
-   let cx=M;lines.forEach((arr,i)=>{drawLines(arr,cx+9,y+20,15,i===0||i>=2?700:400,DARK,false,19);cx+=cols[i]});y+=rh;
+   const status=x.status||x.Status||"";
+   const actionText=x.title+(status&&status!=="Otvoreno"?` · ${status}`:"");
+   const vals=[ref,actionText,x.owner||"—",x.due||"—"],weights=[700,400,700,700];
+   const lines=vals.map((v,i)=>wrap(v,cols[i]-18,15,weights[i])),rh=Math.max(...lines.map(v=>v.length))*19+12;
+   ensure(rh);ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.strokeRect(M,y,totalW,rh);
+   let cx=M;for(let i=0;i<cols.length;i++){if(i>0){ctx.beginPath();ctx.moveTo(cx,y);ctx.lineTo(cx,y+rh);ctx.stroke()}drawLines(lines[i],cx+9,y+20,15,weights[i],DARK,false,19);cx+=cols[i]}
+   y+=rh;
   });
  }
 
@@ -2354,7 +2363,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260831-45").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260901-46").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
