@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-62"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-62"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-63"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-63"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -2651,7 +2651,7 @@ function closedReportDialog(){
  const series=(S.meetingSeries||[]).slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
  const areas=[...new Set(S.items.map(x=>x.Oblast).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const priorities=["Visok","Normalan","Nizak"];
- const card=x=>`<div class="card tight">
+ const card=x=>`<div class="card tight" ${x.kind!=="Sastanak"?`data-cr-item="${x.id}" data-cr-kind="${esc(x.kind)}" style="cursor:pointer"`:""}>
   <div class="row between" style="align-items:flex-start"><div class="grow"><b>${esc(x.title)}</b><div class="sm mute" style="margin-top:4px">${esc(x.kind)} · ${x.kind==="Sastanak"?"održan":"zatvoreno"} ${esc(fmtDate(x.date))}</div>${closedReportContext(x)?`<div class="secondaryMeta">${esc(closedReportContext(x))}</div>`:""}${x.detail?`<div class="secondaryMeta">${esc(x.detail)}</div>`:""}</div></div>
   ${x.kind==="Sastanak"?`<div class="btnrow" style="margin-top:10px"><button class="btn grow" data-cr-meeting="${x.id}">Sastanak</button><button class="btn grow" data-cr-minutes="${x.id}">Zapisnik</button><button class="btn grow" data-cr-meeting-pdf="${x.id}">PDF</button></div>`:""}
  </div>`;
@@ -2693,6 +2693,12 @@ function closedReportDialog(){
  $("#crPriority").onchange=e=>{closedReportView.priority=e.target.value;closedReportDialog()};
  $("#crReset").onclick=()=>{Object.assign(closedReportView,{period:"thisMonth",from:"",to:"",type:"all",person:"",series:"",area:"",importance:"",priority:""});closedReportDialog()};
  if($("#crPdf"))$("#crPdf").onclick=()=>exportClosedReportPDF(entries);
+ $("#dlgBody").querySelectorAll("[data-cr-item]").forEach(c=>c.onclick=()=>{
+  const id=Number(c.dataset.crItem),kind=c.dataset.crKind;
+  if(kind==="Akcija")itemDialog(id);
+  else if(kind==="Beleška")noteArchiveDialog(id);
+  else if(kind==="Projekat")projectArchiveDialog(id);
+ });
  $("#dlgBody").querySelectorAll("[data-cr-meeting]").forEach(b=>b.onclick=()=>meetingDialog(Number(b.dataset.crMeeting)));
  $("#dlgBody").querySelectorAll("[data-cr-minutes]").forEach(b=>b.onclick=()=>meetingMinutesDialog(Number(b.dataset.crMinutes)));
  $("#dlgBody").querySelectorAll("[data-cr-meeting-pdf]").forEach(b=>b.onclick=()=>{
@@ -2810,7 +2816,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-62").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-63").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
