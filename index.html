@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-60"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-60"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-61"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-61"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -1499,7 +1499,7 @@ async function buildMinutesPdfBlob(d,extras={},generatedAt=minutesGeneratedAt())
  };
  const firstPageHeader=()=>{
   newPage();
-  const logoW=252,logoH=Math.round(logoW*logo.naturalHeight/logo.naturalWidth);
+  const logoW=252,logoH=logo?Math.round(logoW*logo.naturalHeight/logo.naturalWidth):0;
   if(logo)ctx.drawImage(logo,M,y,logoW,logoH);
   ctx.textAlign="right";font(17,700);ctx.fillStyle=GREEN;ctx.fillText("ZAPISNIK",W-M,y+18);
   const title=wrap(d.title||"Sastanak",520,31,700);drawLines(title,W-M,y+55,31,700,DARK,false,37);
@@ -2788,7 +2788,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-60").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-61").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
