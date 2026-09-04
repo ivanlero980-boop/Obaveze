@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-63"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-63"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-64"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-64"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -2697,7 +2697,11 @@ function closedReportDialog(){
   const id=Number(c.dataset.crItem),kind=c.dataset.crKind;
   if(kind==="Akcija")itemDialog(id);
   else if(kind==="Beleška")noteArchiveDialog(id);
-  else if(kind==="Projekat")projectArchiveDialog(id);
+  else if(kind==="Projekat"){
+   const s=seriesById(id);
+   if(s&&s.Tip==="Projektna")seriesDialog(id);
+   else projectArchiveDialog(id);
+  }
  });
  $("#dlgBody").querySelectorAll("[data-cr-meeting]").forEach(b=>b.onclick=()=>meetingDialog(Number(b.dataset.crMeeting)));
  $("#dlgBody").querySelectorAll("[data-cr-minutes]").forEach(b=>b.onclick=()=>meetingMinutesDialog(Number(b.dataset.crMinutes)));
@@ -2816,7 +2820,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-63").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-64").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
