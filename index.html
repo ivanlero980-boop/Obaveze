@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-61"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-61"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-62"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-62"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -579,9 +579,31 @@ function norm(){
   if(source&&!source.PrenesenoNaSastanakID)source.PrenesenoNaSastanakID=Number(copy.KolegijumID);
  });
  S.people=[...new Set(S.items.map(x=>x.Odgovoran).filter(Boolean))].sort();
- save();
+ save(false);
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+let _syncBaseline=JSON.parse(JSON.stringify(S));
+function syncComparable(x){
+ if(!x)return "";
+ const c={...x};delete c.Izmijenjeno;
+ return JSON.stringify(c);
+}
+function stampChangedCollection(current,previous,now){
+ const prevById=new Map((previous||[]).map(x=>[Number(x.ID),x]));
+ (current||[]).forEach(x=>{
+  const prev=prevById.get(Number(x.ID));
+  if(!prev||syncComparable(x)!==syncComparable(prev))x.Izmijenjeno=now;
+ });
+}
+function save(markChanges=true){
+ if(markChanges){
+  const now=Date.now();
+  stampChangedCollection(S.items||[],_syncBaseline.items||[],now);
+  stampChangedCollection(S.meetings||[],_syncBaseline.meetings||[],now);
+  stampChangedCollection(S.meetingSeries||[],_syncBaseline.meetingSeries||[],now);
+ }
+ localStorage.setItem(KEY,JSON.stringify(S));
+ _syncBaseline=JSON.parse(JSON.stringify(S));
+}
 
 function isStandalone(){
  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
@@ -2788,7 +2810,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-61").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-62").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
