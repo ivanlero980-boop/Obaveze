@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-54"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-54"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-55"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-55"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -872,6 +872,7 @@ function openMenu(){
  <div class="list">
   <button class="card tight menuItem" id="mPeople"><div><b>Osobe / 1-na-1</b><div class="sm mute">Otvorene stvari po odgovornom</div></div><span>›</span></button>
 <button class="card tight menuItem" id="mArchive"><div><b>Arhiva</b><div class="sm mute">${archivedCount} stavki</div></div><span>›</span></button>
+<button class="card tight menuItem" id="mClosedReport"><div><b>Izvještaj završenih</b><div class="sm mute">Periodični pregled i PDF</div></div><span>›</span></button>
  </div>
  <div class="menuSectionLabel">Podaci</div>
  <div class="list">
@@ -886,6 +887,7 @@ function openMenu(){
  $("#mc").onclick=closeDlg;
  $("#mPeople").onclick=()=>{closeDlg();peopleDialog()};
  $("#mArchive").onclick=archiveDialog;
+ $("#mClosedReport").onclick=()=>{closeDlg();closedReportDialog()};
  $("#mExport").onclick=exportData;
  $("#mImport").onclick=importData;
  $("#mReset").onclick=resetData;
@@ -2188,7 +2190,7 @@ function editItem(x=null,type="Akcija",preset={}){
    const sourceNote=S.items.find(n=>n.ID===x._fromNoteId);
    if(sourceNote){
     if(sourceNote.AgendaStavka===true){x.AgendaIzvorID=sourceNote.ID;}
-    else sourceNote.Status="Arhivirana";
+    else {sourceNote.Status="Arhivirana";sourceNote.ArhiviranDatum=today();}
    }
    delete x._fromNoteId;
   }
@@ -2329,7 +2331,7 @@ function noteDialog(id){
   $("#noteClose").onclick=()=>navBack({type:"changed",kind:"Beleška",id:n.ID});$("#noteEdit").onclick=()=>isAgenda?editAgendaTextDialog(n.ID):editItem(n,"Beleška");
   if($("#noteToAgenda"))$("#noteToAgenda").onclick=()=>noteToAgendaDialog(n.ID);
   $("#noteConvert").onclick=()=>editItem(null,"Akcija",{Zadatak:n.Zadatak,Oblast:n.Oblast||"Poslovno",KolegijumID:n.KolegijumID||null,SerijaID:n.SerijaID||null,_fromNoteId:n.ID,AgendaIzvorID:isAgenda?n.ID:null});
-  $("#noteShare").onclick=()=>shareText(isAgenda?"Stavka agende":"Beleška",itemShareText(n));$("#noteArchive").onclick=()=>{n.Status="Arhivirana";save();render();navBack({type:"deleted",kind:"Beleška",id:n.ID})};
+  $("#noteShare").onclick=()=>shareText(isAgenda?"Stavka agende":"Beleška",itemShareText(n));$("#noteArchive").onclick=()=>{n.Status="Arhivirana";n.ArhiviranDatum=today();save();render();navBack({type:"deleted",kind:"Beleška",id:n.ID})};
   $("#noteDelete").onclick=()=>{if(confirm("Obriši ovu belešku?")){S.items=S.items.filter(x=>x.ID!==n.ID);save();render();navBack({type:"deleted",kind:"Beleška",id:n.ID})}};return;
  }
  const relActions=related.filter(x=>x.Tip==="Akcija"),relProjects=related.filter(x=>x.Tip==="Projekat"),transferred=!!n.PrenesenoNaSastanakID;
@@ -2380,7 +2382,7 @@ function noteArchiveDialog(id){
  <div class="noteFull">${esc(n.Zadatak)}</div><div class="meta" style="margin-top:10px"><span class="chip">${esc(n.Oblast||"Poslovno")}</span></div>
  <div class="btnrow" style="margin-top:18px"><button class="btn grow" id="noteRestore">Vrati u Beleške</button><button class="btn danger grow" id="noteDeleteArchived">Obriši</button></div>`,`noteArchive:${id}`,{dedupe:false});
  $("#nac").onclick=navBack;
- $("#noteRestore").onclick=()=>{n.Status="Aktivna";save();render();navBack({type:"changed",kind:"Beleška",id:n.ID})};
+ $("#noteRestore").onclick=()=>{n.Status="Aktivna";delete n.ArhiviranDatum;save();render();navBack({type:"changed",kind:"Beleška",id:n.ID})};
  $("#noteDeleteArchived").onclick=()=>{if(confirm("Trajno obriši ovu belešku?")){S.items=S.items.filter(x=>x.ID!==n.ID);save();render();navBack({type:"deleted",kind:"Beleška",id:n.ID})}};
 }
 function projectArchiveDialog(id){
@@ -2484,6 +2486,197 @@ function archiveDialog(){
   exportMinutesPDF(d,extras);
  });
 }
+
+const closedReportView={period:"thisMonth",from:"",to:"",type:"all",person:"",series:"",area:"",priority:""};
+function closedReportRange(){
+ return archiveDateRange(closedReportView.period==="all"?"all":closedReportView.period==="custom"?"custom":closedReportView.period);
+}
+function closedReportEntries(){
+ const [from,to]=closedReportRange();
+ const inRange=d=>!!d&&(!from||d>=from)&&(!to||d<=to);
+ const entries=[];
+
+ S.items.filter(x=>x.Tip==="Akcija"&&x.Status==="Završeno"&&inRange(x.ZavrsenDatum)).forEach(x=>{
+  entries.push({
+   kind:"Akcija",id:x.ID,date:x.ZavrsenDatum,title:x.Zadatak||"Akcija",
+   person:x.Odgovoran||"",seriesId:Number(x.SerijaID)||null,area:x.Oblast||"",priority:x.Prioritet||"",
+   due:x.Rok||"",detail:x["Detalji dogovora"]||x.Napomena||"",
+   project:x.Projekat||"",meetingId:Number(x.KolegijumID)||null
+  });
+ });
+
+ (S.meetingSeries||[]).filter(s=>s.Tip==="Projektna"&&s.Status==="Završen"&&inRange(s.ZavrsenDatum)).forEach(s=>{
+  entries.push({
+   kind:"Projekat",id:s.ID,date:s.ZavrsenDatum,title:s.Naziv||"Projekat",
+   person:"",seriesId:Number(s.ID)||null,area:"Poslovno",priority:"",
+   due:s.Rok||"",detail:s.Cilj||"",project:s.Naziv||"",meetingId:null
+  });
+ });
+
+ S.items.filter(x=>x.Tip==="Projekat"&&(x.Status==="Završeno"||x.Status==="Završen")&&inRange(x.ZavrsenDatum)).forEach(x=>{
+  entries.push({
+   kind:"Projekat",id:x.ID,date:x.ZavrsenDatum,title:x.Projekat||x.Zadatak||"Projekat",
+   person:"",seriesId:Number(x.SerijaID)||null,area:x.Oblast||"Poslovno",priority:"",
+   due:x.Rok||"",detail:x["Detalji dogovora"]||x.Napomena||"",project:x.Projekat||x.Zadatak||"",meetingId:Number(x.KolegijumID)||null
+  });
+ });
+
+ S.items.filter(x=>x.Tip==="Beleška"&&x.Status==="Arhivirana"&&inRange(x.ArhiviranDatum)).forEach(x=>{
+  entries.push({
+   kind:"Beleška",id:x.ID,date:x.ArhiviranDatum,title:x.Zadatak||"Beleška",
+   person:"",seriesId:Number(x.SerijaID)||null,area:x.Oblast||"",priority:"",
+   due:"",detail:x.Napomena||x.IzDiskusije||x.Zakljucak||"",project:"",meetingId:Number(x.KolegijumID)||null
+  });
+ });
+
+ let out=entries;
+ if(closedReportView.type!=="all")out=out.filter(x=>x.kind===closedReportView.type);
+ if(closedReportView.person)out=out.filter(x=>x.person===closedReportView.person);
+ if(closedReportView.series)out=out.filter(x=>String(x.seriesId||"")===String(closedReportView.series));
+ if(closedReportView.area)out=out.filter(x=>x.area===closedReportView.area);
+ if(closedReportView.priority)out=out.filter(x=>x.priority===closedReportView.priority);
+ return out.sort((a,b)=>(b.date||"").localeCompare(a.date||"")||String(a.kind).localeCompare(String(b.kind))||(b.id||0)-(a.id||0));
+}
+function closedReportPeriodLabel(){
+ const labels={thisWeek:"Ova nedelja",lastWeek:"Prethodna nedelja",thisMonth:"Ovaj mjesec",lastMonth:"Prethodni mjesec",custom:"Proizvoljan period",all:"Sve"};
+ const [from,to]=closedReportRange();
+ return `${labels[closedReportView.period]||""}${from||to?` · ${from?fmtDate(from):"…"} – ${to?fmtDate(to):"…"}`:""}`;
+}
+function closedReportContext(x){
+ const parts=[];
+ if(x.person)parts.push(`Odgovoran: ${x.person}`);
+ if(x.due)parts.push(`Rok: ${fmtDate(x.due)}`);
+ if(x.seriesId){
+  const s=seriesById(x.seriesId);if(s)parts.push(`${s.Tip==="Projektna"?"Projekat":"Serija"}: ${s.Naziv}`);
+ }
+ if(x.meetingId){
+  const m=meetingById(x.meetingId);if(m)parts.push(`Sastanak: ${meetingLabel(m)}`);
+ }
+ if(x.area)parts.push(x.area);
+ if(x.priority)parts.push(x.priority);
+ return parts.join(" · ");
+}
+function closedReportDialog(){
+ const entries=closedReportEntries(),counts={Akcija:0,Projekat:0,Beleška:0};entries.forEach(x=>counts[x.kind]++);
+ const people=[...new Set(S.items.filter(x=>x.Tip==="Akcija"&&x.Odgovoran).map(x=>x.Odgovoran))].sort((a,b)=>a.localeCompare(b));
+ const series=(S.meetingSeries||[]).slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
+ const areas=[...new Set(S.items.map(x=>x.Oblast).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ const priorities=[...new Set(S.items.filter(x=>x.Tip==="Akcija").map(x=>x.Prioritet).filter(Boolean))];
+ const card=x=>`<div class="card tight">
+  <div class="row between" style="align-items:flex-start"><div class="grow"><b>${esc(x.title)}</b><div class="sm mute" style="margin-top:4px">${esc(x.kind)} · zatvoreno ${esc(fmtDate(x.date))}</div>${closedReportContext(x)?`<div class="secondaryMeta">${esc(closedReportContext(x))}</div>`:""}${x.detail?`<div class="secondaryMeta">${esc(x.detail)}</div>`:""}</div></div>
+ </div>`;
+
+ navOpen(`<div class="row between"><div><h2>Izvještaj završenih</h2><div class="sm mute">${entries.length} stavki · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški</div></div><button class="btn" id="crClose">×</button></div>
+ <div class="card tight" style="margin-top:12px">
+  <label class="f"><span class="sm mute">Period</span><select id="crPeriod">
+   <option value="thisWeek" ${closedReportView.period==="thisWeek"?"selected":""}>Ova nedelja</option>
+   <option value="lastWeek" ${closedReportView.period==="lastWeek"?"selected":""}>Prethodna nedelja</option>
+   <option value="thisMonth" ${closedReportView.period==="thisMonth"?"selected":""}>Ovaj mjesec</option>
+   <option value="lastMonth" ${closedReportView.period==="lastMonth"?"selected":""}>Prethodni mjesec</option>
+   <option value="custom" ${closedReportView.period==="custom"?"selected":""}>Proizvoljan period</option>
+   <option value="all" ${closedReportView.period==="all"?"selected":""}>Sve sa poznatim datumom</option>
+  </select></label>
+  ${closedReportView.period==="custom"?`<div class="row" style="gap:8px"><label class="f grow"><span class="sm mute">Od</span><input type="date" id="crFrom" value="${esc(closedReportView.from||"")}"></label><label class="f grow"><span class="sm mute">Do</span><input type="date" id="crTo" value="${esc(closedReportView.to||"")}"></label></div>`:""}
+  <div class="row" style="gap:8px">
+   <label class="f grow"><span class="sm mute">Tip</span><select id="crType"><option value="all">Sve</option><option value="Akcija" ${closedReportView.type==="Akcija"?"selected":""}>Akcije</option><option value="Projekat" ${closedReportView.type==="Projekat"?"selected":""}>Projekti</option><option value="Beleška" ${closedReportView.type==="Beleška"?"selected":""}>Beleške</option></select></label>
+   <label class="f grow"><span class="sm mute">Osoba</span><select id="crPerson"><option value="">Sve osobe</option>${people.map(p=>`<option value="${esc(p)}" ${closedReportView.person===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
+  </div>
+  <div class="row" style="gap:8px">
+   <label class="f grow"><span class="sm mute">Projekat / serija</span><select id="crSeries"><option value="">Sve</option>${series.map(s=>`<option value="${s.ID}" ${String(closedReportView.series)===String(s.ID)?"selected":""}>${esc(s.Naziv||"Serija")}</option>`).join("")}</select></label>
+   <label class="f grow"><span class="sm mute">Oblast</span><select id="crArea"><option value="">Sve oblasti</option>${areas.map(a=>`<option value="${esc(a)}" ${closedReportView.area===a?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
+  </div>
+  <label class="f"><span class="sm mute">Prioritet</span><select id="crPriority"><option value="">Svi prioriteti</option>${priorities.map(p=>`<option value="${esc(p)}" ${closedReportView.priority===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
+  <div class="sm mute" style="margin-top:8px">${esc(closedReportPeriodLabel())}</div>
+ </div>
+ <div class="btnrow" style="margin:12px 0"><button class="btn pri grow" id="crPdf" ${entries.length?"":"disabled"}>Sačuvaj kao PDF</button><button class="btn grow" id="crReset">Poništi filtere</button></div>
+ <div class="list">${entries.map(card).join("")||`<div class="empty">Nema zatvorenih stavki za izabrane filtere.${closedReportView.type==="Beleška"?` Stare arhivirane beleške bez datuma zatvaranja nijesu uključene.`:""}</div>`}</div>
+ `,`closedReport`,{refresh:()=>closedReportDialog()});
+ $("#crClose").onclick=navBack;
+ $("#crPeriod").onchange=e=>{closedReportView.period=e.target.value;closedReportDialog()};
+ if($("#crFrom"))$("#crFrom").onchange=e=>{closedReportView.from=e.target.value;closedReportDialog()};
+ if($("#crTo"))$("#crTo").onchange=e=>{closedReportView.to=e.target.value;closedReportDialog()};
+ $("#crType").onchange=e=>{closedReportView.type=e.target.value;closedReportDialog()};
+ $("#crPerson").onchange=e=>{closedReportView.person=e.target.value;closedReportDialog()};
+ $("#crSeries").onchange=e=>{closedReportView.series=e.target.value;closedReportDialog()};
+ $("#crArea").onchange=e=>{closedReportView.area=e.target.value;closedReportDialog()};
+ $("#crPriority").onchange=e=>{closedReportView.priority=e.target.value;closedReportDialog()};
+ $("#crReset").onclick=()=>{Object.assign(closedReportView,{period:"thisMonth",from:"",to:"",type:"all",person:"",series:"",area:"",priority:""});closedReportDialog()};
+ if($("#crPdf"))$("#crPdf").onclick=()=>exportClosedReportPDF(entries);
+}
+function closedReportFileName(){
+ const raw=`Izvjestaj-zavrsenih-${closedReportView.period==="custom"?(closedReportView.from||"od")+"-"+(closedReportView.to||"do"):closedReportView.period}`;
+ return raw.replace(/[\\/:*?"<>|]+/g,"-")+".pdf";
+}
+async function buildClosedReportPdfBlob(entries){
+ const W=1240,H=1754,M=88,FOOT=72,CONTENT_BOTTOM=H-FOOT-24;
+ const GREEN="#00885a",DARK="#1d2924",MUTED="#68736e",LINE="#d9e0dc",LIGHT="#f6f9f7";
+ const pages=[];let c,ctx,y;
+ const font=(size,weight=400)=>{ctx.font=`${weight} ${size}px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif`};
+ const newPage=()=>{c=document.createElement("canvas");c.width=W;c.height=H;ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);pages.push(c);y=M};
+ const wrap=(txt,maxW,size=18,weight=400)=>{
+  font(size,weight);const paras=String(txt||"").split(/\n/),out=[];
+  paras.forEach((p,pi)=>{const words=p.split(/\s+/).filter(Boolean);let line="";words.forEach(w=>{const t=line?line+" "+w:w;if(line&&ctx.measureText(t).width>maxW){out.push(line);line=w}else line=t});if(line)out.push(line);if(pi<paras.length-1)out.push("")});
+  return out.length?out:[""];
+ };
+ const linesH=(lines,lh)=>Math.max(1,lines.length)*lh;
+ const drawLines=(lines,x,yy,size=18,weight=400,color=DARK,lh=23)=>{font(size,weight);ctx.fillStyle=color;lines.forEach((l,i)=>ctx.fillText(l,x,yy+i*lh));return linesH(lines,lh)};
+ const ensure=h=>{if(y+h>CONTENT_BOTTOM){newPage();header(false)}};
+ const header=(first=true)=>{
+  font(17,700);ctx.fillStyle=GREEN;ctx.fillText("OBAVEZE",M,y+14);
+  ctx.textAlign="right";font(17,700);ctx.fillText("IZVJEŠTAJ ZAVRŠENIH STAVKI",W-M,y+14);ctx.textAlign="left";
+  y+=36;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=30;
+  if(first){
+   const title=closedReportPeriodLabel();const ls=wrap(title,W-2*M,30,700);drawLines(ls,M,y+26,30,700,DARK,36);y+=linesH(ls,36)+18;
+   const counts={Akcija:0,Projekat:0,Beleška:0};entries.forEach(x=>counts[x.kind]++);
+   const summary=`Ukupno ${entries.length} · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški`;
+   font(18,400);ctx.fillStyle=MUTED;ctx.fillText(summary,M,y+18);y+=44;
+   const filters=[];
+   if(closedReportView.type!=="all")filters.push(`Tip: ${closedReportView.type}`);
+   if(closedReportView.person)filters.push(`Osoba: ${closedReportView.person}`);
+   if(closedReportView.series){const s=seriesById(closedReportView.series);if(s)filters.push(`Projekat / serija: ${s.Naziv}`)}
+   if(closedReportView.area)filters.push(`Oblast: ${closedReportView.area}`);
+   if(closedReportView.priority)filters.push(`Prioritet: ${closedReportView.priority}`);
+   if(filters.length){const fl=wrap(filters.join(" · "),W-2*M,16,400);drawLines(fl,M,y+16,16,400,MUTED,20);y+=linesH(fl,20)+18}
+  }
+ };
+ newPage();header(true);
+
+ entries.forEach((x,i)=>{
+  const title=wrap(x.title,W-2*M-160,19,700),context=closedReportContext(x),ctxLines=context?wrap(context,W-2*M-160,15,400):[],detail=x.detail?wrap(x.detail,W-2*M-160,15,400):[];
+  const h=Math.max(76,20+linesH(title,24)+(ctxLines.length?linesH(ctxLines,19)+6:0)+(detail.length?linesH(detail,19)+6:0));
+  ensure(h+10);
+  if(i%2===1){ctx.fillStyle=LIGHT;ctx.fillRect(M,y,W-2*M,h)}
+  ctx.fillStyle=GREEN;font(15,700);ctx.fillText(x.kind.toUpperCase(),M+10,y+24);
+  font(15,400);ctx.fillStyle=MUTED;ctx.fillText(fmtDate(x.date),M+10,y+48);
+  let yy=y+24;drawLines(title,M+150,yy,19,700,DARK,24);yy+=linesH(title,24);
+  if(ctxLines.length){yy+=4;drawLines(ctxLines,M+150,yy,15,400,MUTED,19);yy+=linesH(ctxLines,19)}
+  if(detail.length){yy+=4;drawLines(detail,M+150,yy,15,400,DARK,19)}
+  ctx.strokeStyle=LINE;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y+h);ctx.lineTo(W-M,y+h);ctx.stroke();
+  y+=h;
+ });
+
+ const generatedAt=new Date().toLocaleString("sr-Latn-ME");
+ pages.forEach((pg,i)=>{
+  const cc=pg.getContext("2d");cc.strokeStyle=LINE;cc.beginPath();cc.moveTo(M,H-52);cc.lineTo(W-M,H-52);cc.stroke();
+  cc.font='14px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif';cc.fillStyle=MUTED;
+  cc.textAlign="left";cc.fillText("Obaveze",M,H-26);cc.textAlign="center";cc.fillText(`Strana ${i+1}/${pages.length}`,W/2,H-26);cc.textAlign="right";cc.fillText(`Generisano: ${generatedAt}`,W-M,H-26);
+ });
+ const imgs=pages.map(pg=>({width:pg.width,height:pg.height,bytes:dataUrlBytes(pg.toDataURL("image/jpeg",0.90))}));
+ return pdfFromJpegs(imgs);
+}
+async function exportClosedReportPDF(entries){
+ if(!entries.length)return;
+ const fileName=closedReportFileName();
+ try{
+  const blob=await buildClosedReportPdfBlob(entries),file=new File([blob],fileName,{type:"application/pdf"});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+   try{await navigator.share({files:[file],title:fileName});return}catch(e){if(e?.name==="AbortError")return}
+  }
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fileName;a.style.display="none";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},60000);
+ }catch(e){console.error(e);alert("PDF izvještaj nije mogao da se generiše.")}
+}
+
 function exportData(){
  const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");
  a.href=URL.createObjectURL(blob);a.download="obaveze-backup-"+today()+".json";a.click();
@@ -2517,7 +2710,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-54").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-55").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
