@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-52"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-52"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-53"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-53"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -867,11 +867,12 @@ function vProjekti(){
 function bindMenu(){const b=$("#menuBtn");if(b)b.onclick=openMenu}
 function openMenu(){
  const archivedCount=S.items.filter(x=>x.Status==="Završeno"||x.Status==="Završen"||x.Status==="Arhivirana").length;
+ const archivedMeetingCount=(S.meetings||[]).filter(m=>m.Status==="Završen").length;
  openDlg(`<div class="row between"><h2>Meni</h2><button class="btn" id="mc">×</button></div>
  <div class="menuSectionLabel">Praćenje</div>
  <div class="list">
   <button class="card tight menuItem" id="mPeople"><div><b>Osobe / 1-na-1</b><div class="sm mute">Otvorene stvari po odgovornom</div></div><span>›</span></button>
-<button class="card tight menuItem" id="mArchive"><div><b>Arhiva</b><div class="sm mute">${archivedCount} stavki</div></div><span>›</span></button>
+<button class="card tight menuItem" id="mArchive"><div><b>Arhiva</b><div class="sm mute">${archivedCount} stavki · ${archivedMeetingCount} sastanaka</div></div><span>›</span></button>
  </div>
  <div class="menuSectionLabel">Podaci</div>
  <div class="list">
@@ -2401,16 +2402,35 @@ function projectArchiveDialog(id){
 }
 
 function archiveDialog(){
- const actions=S.items.filter(x=>x.Tip==="Akcija"&&x.Status==="Završeno").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
+ const actions=S.items.filter(x=>x.Tip==="Akcija"&&x.Status==="Završeno").slice().sort((a,b)=>(b.ZavrsenDatum||"").localeCompare(a.ZavrsenDatum||"")||(b.ID||0)-(a.ID||0));
  const notesA=S.items.filter(x=>x.Tip==="Beleška"&&x.Status==="Arhivirana").slice().sort((a,b)=>(b.ID||0)-(a.ID||0));
+ const meetingsA=(S.meetings||[]).filter(m=>m.Status==="Završen").slice().sort((a,b)=>(b.ZavrsenDatum||b.Datum||"").localeCompare(a.ZavrsenDatum||a.Datum||"")||(b.ID||0)-(a.ID||0));
  const total=actions.length+notesA.length;
- navOpen(`<div class="row between"><div><h2>Arhiva</h2><div class="sm mute">${total} arhiviranih stavki</div></div><button class="btn" id="ac">×</button></div>
+ const meetingCard=m=>{
+  const ser=m.SerijaID?seriesById(m.SerijaID):null;
+  const linked=meetingItems(m.ID),agenda=linked.filter(x=>x.Tip==="Beleška"&&x.AgendaStavka===true).length,acts=linked.filter(x=>x.Tip==="Akcija").length;
+  const title=ser?.Naziv||m.Naslov||"Sastanak";
+  return `<div class="card tight">
+   <div class="row between" style="align-items:flex-start"><div class="grow"><b>${esc(title)}</b><div class="sm mute" style="margin-top:4px">${esc(fmtDate(m.Datum||""))}${m.Naslov&&ser?` · ${esc(m.Naslov)}`:""}</div><div class="meta" style="margin-top:7px"><span class="chip">${agenda} tema</span><span class="chip">${acts} akcija</span>${m.ZavrsenDatum?`<span class="chip">Završen ${esc(fmtDate(m.ZavrsenDatum))}</span>`:""}</div></div></div>
+   <div class="btnrow" style="margin-top:10px"><button class="btn grow" data-arch-meeting="${m.ID}">Sastanak</button><button class="btn grow" data-arch-minutes="${m.ID}">Zapisnik</button><button class="btn grow" data-arch-pdf="${m.ID}">PDF</button></div>
+  </div>`;
+ };
+ navOpen(`<div class="row between"><div><h2>Arhiva</h2><div class="sm mute">${total} arhiviranih stavki · ${meetingsA.length} završenih sastanaka</div></div><button class="btn" id="ac">×</button></div>
+ ${meetingsA.length?`<div class="archiveSection"><div class="projectActionHead"><span>Sastanci</span><span>${meetingsA.length}</span></div><div class="list">${meetingsA.map(meetingCard).join("")}</div></div>`:""}
  ${actions.length?`<div class="archiveSection"><div class="projectActionHead"><span>Akcije</span><span>${actions.length}</span></div><div class="list">${actions.map(taskCard).join("")}</div></div>`:""}
  ${notesA.length?`<div class="archiveSection"><div class="projectActionHead"><span>Beleške / teme</span><span>${notesA.length}</span></div><div class="list">${notesA.map(n=>`<div class="card tight" data-arch-note="${n.ID}"><b>${esc(n.Zadatak)}</b><div class="sm mute" style="margin-top:4px">${n.AgendaStavka===true?`Agenda${n.KolegijumID&&meetingById(n.KolegijumID)?` · ${esc(meetingLabel(meetingById(n.KolegijumID)))}`:""}`:esc(n.Oblast||"Poslovno")}</div></div>`).join("")}</div></div>`:""}
- ${!total?`<div class="empty">Arhiva je prazna.</div>`:""}`,`archive`,{refresh:()=>archiveDialog()});
+ ${!total&&!meetingsA.length?`<div class="empty">Arhiva je prazna.</div>`:""}`,`archive`,{refresh:()=>archiveDialog()});
  $("#ac").onclick=navBack;
  bindCards($("#dlgBody"));
  $("#dlgBody").querySelectorAll("[data-arch-note]").forEach(b=>b.onclick=()=>noteArchiveDialog(Number(b.dataset.archNote)));
+ $("#dlgBody").querySelectorAll("[data-arch-meeting]").forEach(b=>b.onclick=()=>meetingDialog(Number(b.dataset.archMeeting)));
+ $("#dlgBody").querySelectorAll("[data-arch-minutes]").forEach(b=>b.onclick=()=>meetingMinutesDialog(Number(b.dataset.archMinutes)));
+ $("#dlgBody").querySelectorAll("[data-arch-pdf]").forEach(b=>b.onclick=()=>{
+  const m=meetingById(Number(b.dataset.archPdf));if(!m)return;
+  const d=meetingMinutesData(m),saved=m.ZapisnikDraft&&typeof m.ZapisnikDraft==="object"?m.ZapisnikDraft:{};
+  const extras={present:saved.present!==undefined?saved.present:d.participants,absent:saved.absent||"",meetingNo:saved.meetingNo!==undefined?saved.meetingNo:(d.meetingNo||""),intro:saved.intro||"",closing:saved.closing||""};
+  exportMinutesPDF(d,extras);
+ });
 }
 function exportData(){
  const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),a=document.createElement("a");
@@ -2445,7 +2465,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-52").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-53").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
