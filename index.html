@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-55"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-55"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-56"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-56"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -871,8 +871,7 @@ function openMenu(){
  <div class="menuSectionLabel">Praćenje</div>
  <div class="list">
   <button class="card tight menuItem" id="mPeople"><div><b>Osobe / 1-na-1</b><div class="sm mute">Otvorene stvari po odgovornom</div></div><span>›</span></button>
-<button class="card tight menuItem" id="mArchive"><div><b>Arhiva</b><div class="sm mute">${archivedCount} stavki</div></div><span>›</span></button>
-<button class="card tight menuItem" id="mClosedReport"><div><b>Izvještaj završenih</b><div class="sm mute">Periodični pregled i PDF</div></div><span>›</span></button>
+<button class="card tight menuItem" id="mClosedReport"><div><b>Istorija / izvještaj</b><div class="sm mute">Završene stavke, sastanci i PDF</div></div><span>›</span></button>
  </div>
  <div class="menuSectionLabel">Podaci</div>
  <div class="list">
@@ -886,7 +885,6 @@ function openMenu(){
  </div>`);
  $("#mc").onclick=closeDlg;
  $("#mPeople").onclick=()=>{closeDlg();peopleDialog()};
- $("#mArchive").onclick=archiveDialog;
  $("#mClosedReport").onclick=()=>{closeDlg();closedReportDialog()};
  $("#mExport").onclick=exportData;
  $("#mImport").onclick=importData;
@@ -2529,6 +2527,15 @@ function closedReportEntries(){
   });
  });
 
+ (S.meetings||[]).filter(m=>m.Status==="Završen"&&inRange(m.ZavrsenDatum||m.Datum)).forEach(m=>{
+  const s=m.SerijaID?seriesById(m.SerijaID):null;
+  entries.push({
+   kind:"Sastanak",id:m.ID,date:m.ZavrsenDatum||m.Datum,title:s?.Naziv||m.Naslov||"Sastanak",
+   person:"",seriesId:Number(m.SerijaID)||null,area:"Poslovno",priority:"",
+   due:"",detail:m.Naslov&&s?m.Naslov:(m.Napomena||""),project:"",meetingId:Number(m.ID)||null
+  });
+ });
+
  let out=entries;
  if(closedReportView.type!=="all")out=out.filter(x=>x.kind===closedReportView.type);
  if(closedReportView.person)out=out.filter(x=>x.person===closedReportView.person);
@@ -2557,16 +2564,17 @@ function closedReportContext(x){
  return parts.join(" · ");
 }
 function closedReportDialog(){
- const entries=closedReportEntries(),counts={Akcija:0,Projekat:0,Beleška:0};entries.forEach(x=>counts[x.kind]++);
+ const entries=closedReportEntries(),counts={Akcija:0,Projekat:0,Beleška:0,Sastanak:0};entries.forEach(x=>{if(counts[x.kind]!==undefined)counts[x.kind]++});
  const people=[...new Set(S.items.filter(x=>x.Tip==="Akcija"&&x.Odgovoran).map(x=>x.Odgovoran))].sort((a,b)=>a.localeCompare(b));
  const series=(S.meetingSeries||[]).slice().sort((a,b)=>(a.Naziv||"").localeCompare(b.Naziv||""));
  const areas=[...new Set(S.items.map(x=>x.Oblast).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const priorities=[...new Set(S.items.filter(x=>x.Tip==="Akcija").map(x=>x.Prioritet).filter(Boolean))];
  const card=x=>`<div class="card tight">
-  <div class="row between" style="align-items:flex-start"><div class="grow"><b>${esc(x.title)}</b><div class="sm mute" style="margin-top:4px">${esc(x.kind)} · zatvoreno ${esc(fmtDate(x.date))}</div>${closedReportContext(x)?`<div class="secondaryMeta">${esc(closedReportContext(x))}</div>`:""}${x.detail?`<div class="secondaryMeta">${esc(x.detail)}</div>`:""}</div></div>
+  <div class="row between" style="align-items:flex-start"><div class="grow"><b>${esc(x.title)}</b><div class="sm mute" style="margin-top:4px">${esc(x.kind)} · ${x.kind==="Sastanak"?"održan":"zatvoreno"} ${esc(fmtDate(x.date))}</div>${closedReportContext(x)?`<div class="secondaryMeta">${esc(closedReportContext(x))}</div>`:""}${x.detail?`<div class="secondaryMeta">${esc(x.detail)}</div>`:""}</div></div>
+  ${x.kind==="Sastanak"?`<div class="btnrow" style="margin-top:10px"><button class="btn grow" data-cr-meeting="${x.id}">Sastanak</button><button class="btn grow" data-cr-minutes="${x.id}">Zapisnik</button><button class="btn grow" data-cr-meeting-pdf="${x.id}">PDF</button></div>`:""}
  </div>`;
 
- navOpen(`<div class="row between"><div><h2>Izvještaj završenih</h2><div class="sm mute">${entries.length} stavki · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški</div></div><button class="btn" id="crClose">×</button></div>
+ navOpen(`<div class="row between"><div><h2>Izvještaj završenih</h2><div class="sm mute">${entries.length} zapisa · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški · ${counts.Sastanak} sastanaka</div></div><button class="btn" id="crClose">×</button></div>
  <div class="card tight" style="margin-top:12px">
   <label class="f"><span class="sm mute">Period</span><select id="crPeriod">
    <option value="thisWeek" ${closedReportView.period==="thisWeek"?"selected":""}>Ova nedelja</option>
@@ -2578,7 +2586,7 @@ function closedReportDialog(){
   </select></label>
   ${closedReportView.period==="custom"?`<div class="row" style="gap:8px"><label class="f grow"><span class="sm mute">Od</span><input type="date" id="crFrom" value="${esc(closedReportView.from||"")}"></label><label class="f grow"><span class="sm mute">Do</span><input type="date" id="crTo" value="${esc(closedReportView.to||"")}"></label></div>`:""}
   <div class="row" style="gap:8px">
-   <label class="f grow"><span class="sm mute">Tip</span><select id="crType"><option value="all">Sve</option><option value="Akcija" ${closedReportView.type==="Akcija"?"selected":""}>Akcije</option><option value="Projekat" ${closedReportView.type==="Projekat"?"selected":""}>Projekti</option><option value="Beleška" ${closedReportView.type==="Beleška"?"selected":""}>Beleške</option></select></label>
+   <label class="f grow"><span class="sm mute">Tip</span><select id="crType"><option value="all">Sve</option><option value="Akcija" ${closedReportView.type==="Akcija"?"selected":""}>Akcije</option><option value="Projekat" ${closedReportView.type==="Projekat"?"selected":""}>Projekti</option><option value="Beleška" ${closedReportView.type==="Beleška"?"selected":""}>Beleške</option><option value="Sastanak" ${closedReportView.type==="Sastanak"?"selected":""}>Sastanci</option></select></label>
    <label class="f grow"><span class="sm mute">Osoba</span><select id="crPerson"><option value="">Sve osobe</option>${people.map(p=>`<option value="${esc(p)}" ${closedReportView.person===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
   </div>
   <div class="row" style="gap:8px">
@@ -2602,6 +2610,14 @@ function closedReportDialog(){
  $("#crPriority").onchange=e=>{closedReportView.priority=e.target.value;closedReportDialog()};
  $("#crReset").onclick=()=>{Object.assign(closedReportView,{period:"thisMonth",from:"",to:"",type:"all",person:"",series:"",area:"",priority:""});closedReportDialog()};
  if($("#crPdf"))$("#crPdf").onclick=()=>exportClosedReportPDF(entries);
+ $("#dlgBody").querySelectorAll("[data-cr-meeting]").forEach(b=>b.onclick=()=>meetingDialog(Number(b.dataset.crMeeting)));
+ $("#dlgBody").querySelectorAll("[data-cr-minutes]").forEach(b=>b.onclick=()=>meetingMinutesDialog(Number(b.dataset.crMinutes)));
+ $("#dlgBody").querySelectorAll("[data-cr-meeting-pdf]").forEach(b=>b.onclick=()=>{
+  const m=meetingById(Number(b.dataset.crMeetingPdf));if(!m)return;
+  const d=meetingMinutesData(m),saved=m.ZapisnikDraft&&typeof m.ZapisnikDraft==="object"?m.ZapisnikDraft:{};
+  const extras={present:saved.present!==undefined?saved.present:d.participants,absent:saved.absent||"",meetingNo:saved.meetingNo!==undefined?saved.meetingNo:(d.meetingNo||""),intro:saved.intro||"",closing:saved.closing||""};
+  exportMinutesPDF(d,extras);
+ });
 }
 function closedReportFileName(){
  const raw=`Izvjestaj-zavrsenih-${closedReportView.period==="custom"?(closedReportView.from||"od")+"-"+(closedReportView.to||"do"):closedReportView.period}`;
@@ -2627,8 +2643,8 @@ async function buildClosedReportPdfBlob(entries){
   y+=36;ctx.strokeStyle=GREEN;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=30;
   if(first){
    const title=closedReportPeriodLabel();const ls=wrap(title,W-2*M,30,700);drawLines(ls,M,y+26,30,700,DARK,36);y+=linesH(ls,36)+18;
-   const counts={Akcija:0,Projekat:0,Beleška:0};entries.forEach(x=>counts[x.kind]++);
-   const summary=`Ukupno ${entries.length} · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški`;
+   const counts={Akcija:0,Projekat:0,Beleška:0,Sastanak:0};entries.forEach(x=>{if(counts[x.kind]!==undefined)counts[x.kind]++});
+   const summary=`Ukupno ${entries.length} · ${counts.Akcija} akcija · ${counts.Projekat} projekata · ${counts.Beleška} beleški · ${counts.Sastanak} sastanaka`;
    font(18,400);ctx.fillStyle=MUTED;ctx.fillText(summary,M,y+18);y+=44;
    const filters=[];
    if(closedReportView.type!=="all")filters.push(`Tip: ${closedReportView.type}`);
@@ -2710,7 +2726,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-55").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-56").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
