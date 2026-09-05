@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-64"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-64"><title>Obaveze</title>
+<meta name="theme-color" content="#007a3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Obaveze"><link rel="manifest" href="manifest.json?v=20260904-65"><link rel="apple-touch-icon" href="icon-192.png?v=20260904-65"><title>Obaveze</title>
 <style>
 :root{
   --bg:#f5f7f6;
@@ -483,6 +483,9 @@ nav button.on:after{
 .topicField{margin-top:14px}.topicFieldLabel{font-size:12px;font-weight:800;color:var(--green-deep);margin-bottom:5px}.topicDiscussion{background:var(--paper-soft)}
 .topicActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.topicToggle{display:flex;gap:10px;align-items:flex-start;margin-top:10px}.topicToggle input{width:auto;margin-top:3px}.topicSecondary{display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}.topicSecondary button{border:0;background:none;color:var(--mute);font-size:13px;padding:4px 0}.agendaManageRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}.agendaManageRow:first-child{border-top:0}.agendaManageRow textarea{min-height:58px}.discussionPrint{font-style:italic;color:#53615a}
 
+
+.quietSection h2{color:var(--mute);font-weight:500}
+.quietNote{font-size:12px;color:var(--mute)}
 </style></head><body><main class="app"><div id="view"></div></main>
 <button class="fab" id="fab">+</button>
 <nav><div class="inner coreNav">
@@ -757,6 +760,7 @@ function vPregled(){
      <div class="rowDue">Danas</div><span class="starMark ${x.Znacaj==="Strateško"?"strategic":""}" aria-label="${x.Znacaj==="Strateško"?"Strateško":""}">${x.Znacaj==="Strateško"?"★":""}</span>
    </div>`;
  }).join(""):`<div class="dashboardEmpty">Nema akcija sa rokom danas.</div>`;
+ const quiet=(t,txt)=>`<div class="sectionHead quietSection"><h2>${t}</h2><span class="quietNote">${txt}</span></div>`;
  $("#view").innerHTML=`<section class="dashboardHero">
   <div class="heroTop">
    <div class="logoPlate"><img src="./logo-grawe-2021.png" alt="GRAWE"></div>
@@ -779,14 +783,22 @@ function vPregled(){
  ${(overdue.length||overdueMeetings.length)?`<div class="sectionHead"><h2>Kasni</h2>${overdueMeetings.length?"":`<button class="sectionLink" data-go="akcije">Prikaži sve ›</button>`}</div>
  <div class="sectionCard">${overdueHTML}${overdueMeetingsHTML}</div>`:""}
 
- <div class="sectionHead"><h2>Danas</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
- <div class="sectionCard">${todayHTML}</div>
+ ${todayRows.length
+ ? `<div class="sectionHead"><h2>Danas</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
+    <div class="sectionCard">${todayHTML}</div>`
+ : quiet("Danas","nema rokova")}
 
- ${dashboardArea==="Poslovno"?`<div class="sectionHead"><h2>Sastanci</h2><button class="sectionLink" data-go="sastanci">Prikaži sve ›</button></div>
- <div class="sectionCard">${meetingsHTML}</div>`:""}
+ ${dashboardArea==="Poslovno"
+ ? (upcomingMeetings.length
+   ? `<div class="sectionHead"><h2>Sastanci</h2><button class="sectionLink" data-go="sastanci">Prikaži sve ›</button></div>
+      <div class="sectionCard">${meetingsHTML}</div>`
+   : quiet("Sastanci","nema u 7 dana"))
+ : ""}
 
- <div class="sectionHead"><h2>Dospijeva u narednih 7 dana</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
- <div class="sectionCard">${next7HTML}</div>
+ ${next7.length
+ ? `<div class="sectionHead"><h2>Dospijeva u narednih 7 dana</h2><button class="sectionLink" data-go="akcije">Prikaži sve ›</button></div>
+    <div class="sectionCard">${next7HTML}</div>`
+ : quiet("Dospijeva u narednih 7 dana","nema rokova")}
  </div>`;
 
  $("#view").querySelectorAll("[data-area]").forEach(b=>b.onclick=()=>{dashboardArea=b.dataset.area;render()});
@@ -800,6 +812,10 @@ function actionListCard(x){
  const cls=d<0?"late":d<=7?"soon":x.Znacaj==="Strateško"?"strategic":"";
  const due=x.Rok?(d<0?`Kasni ${Math.abs(d)} d`:d===0?"Danas":fmtDate(x.Rok)):"Bez roka";
  const dueCls=d<0?"late":d<=7?"soon":"";
+ const chips=[
+  x.Znacaj==="Strateško"?`<span class="chip priority strategic">Strateško</span>`:"",
+  (x.Prioritet==="Visok"||x.Prioritet==="Nizak")?`<span class="chip">${esc(x.Prioritet)}</span>`:""
+ ].filter(Boolean).join("");
  const meeting=x.KolegijumID?meetingById(x.KolegijumID):null;
  const sourceTopic=x.AgendaIzvorID?S.items.find(n=>Number(n.ID)===Number(x.AgendaIzvorID)&&n.Tip==="Beleška"):null;
  const meetingMeta=meeting?(meeting.SerijaID&&seriesById(meeting.SerijaID)?`${seriesById(meeting.SerijaID).Naziv} · ${fmtDate(meeting.Datum)}`:`Sastanak · ${fmtDate(meeting.Datum)}`):"";
@@ -811,7 +827,7 @@ function actionListCard(x){
   <div class="secondaryTop"><div class="taskTitle grow">${esc(x.Zadatak)}</div><div class="secondaryDue ${dueCls}">${esc(due)}</div></div>
   ${meta?`<div class="secondaryMeta">${meta}</div>`:""}
   ${origin}
-  <div class="meta">${x.Znacaj?`<span class="chip ${x.Znacaj==="Strateško"?"priority strategic":""}">${esc(x.Znacaj)}</span>`:""}${x.Prioritet?`<span class="chip">${esc(x.Prioritet)}</span>`:""}</div>
+  ${chips?`<div class="meta">${chips}</div>`:""}
  </div>`;
 }
 function vAkcije(){
@@ -901,7 +917,7 @@ function vBeleske(){
  <div class="tabs filterScroll">
   ${[["all","Sve"],["Visok","Visok"],["Normalan","Normalan"],["Nizak","Nizak"]].map(([v,l])=>`<button class="btn ${noteView.priority===v?"on":""}" data-note-priority="${v}">${l}</button>`).join("")}
  </div>
- <div class="list" style="margin-top:12px">${ns.map(n=>`<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${n.Znacaj?`<span class="chip">${esc(n.Znacaj)}</span>`:""}${n.Prioritet?`<span class="chip">${esc(n.Prioritet)}</span>`:""}</div></div></div></div>`).join("")||`<div class="empty">Nema aktivnih beleški za izabrane filtere.</div>`}</div>`;
+ <div class="list" style="margin-top:12px">${ns.map(n=>`<div class="card noteCard" data-note="${n.ID}"><div class="noteLead"><div class="secondaryIcon">${ICONS.note}</div><div class="grow"><div class="taskTitle">${esc(n.Zadatak)}</div><div class="meta"><span class="chip">${esc(n.Oblast||"Poslovno")}</span>${n.Znacaj==="Strateško"?`<span class="chip priority strategic">Strateško</span>`:""}${(n.Prioritet==="Visok"||n.Prioritet==="Nizak")?`<span class="chip">${esc(n.Prioritet)}</span>`:""}</div></div></div></div>`).join("")||`<div class="empty">Nema aktivnih beleški za izabrane filtere.</div>`}</div>`;
  $("#view").querySelectorAll("[data-note]").forEach(c=>c.onclick=()=>noteDialog(Number(c.dataset.note)));
  $("#view").querySelectorAll("[data-note-importance]").forEach(b=>b.onclick=()=>{noteView.importance=b.dataset.noteImportance;vBeleske()});
  $("#view").querySelectorAll("[data-note-priority]").forEach(b=>b.onclick=()=>{noteView.priority=b.dataset.notePriority;vBeleske()});
@@ -2820,7 +2836,7 @@ function bindCards(root=document){
 }
 if("serviceWorker" in navigator){
  window.addEventListener("load",()=>{
-  navigator.serviceWorker.register("sw.js?v=20260904-64").then(reg=>{
+  navigator.serviceWorker.register("sw.js?v=20260904-65").then(reg=>{
    reg.update();
    let refreshing=false;
    navigator.serviceWorker.addEventListener("controllerchange",()=>{
